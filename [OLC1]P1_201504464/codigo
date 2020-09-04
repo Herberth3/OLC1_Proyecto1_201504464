@@ -1,0 +1,439 @@
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Drawing;
+using System.IO;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+
+namespace _OLC1_Proyecto1
+{
+    public partial class Form1 : Form
+    {
+        string nombreArchivo;
+        List<Token> listaTokens;
+        List<Token_Error> listaTokensError;
+        ArrayList paths = new ArrayList();
+        int indexTabSeleccionado;
+        SaveFileDialog guardarArchivoDialogo = new SaveFileDialog();
+        List<string> expresionesPrefijas;
+        List<string> listaExpresionesPrefijas;
+        List<string> rutasImagenes;
+        int numeroRutas;
+        int numeroImagen = 1;
+
+        public Form1()
+        {
+            InitializeComponent();
+        }
+
+        private void nuevaPestañaToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                if (tabControl1.Visible == false)
+                {
+                    tabControl1.Visible = true;
+                }
+                TabPage tp = new TabPage();
+                int tc = (tabControl1.TabCount + 1);
+                paths.Add(null); //al crear una nueva pestaña se agrega null en cada posicion del arreglo
+                RichTextBox rtb = new RichTextBox();
+                rtb.Multiline = true;
+                rtb.WordWrap = false;
+                rtb.AcceptsTab = true;
+                rtb.Dock = DockStyle.Fill;
+                tp.Controls.Add(rtb);
+                tabControl1.TabPages.Add(tp);
+                tabControl1.SelectedTab = tp;
+                tp.Text = "Pestaña " + tc.ToString();
+
+            }
+            catch (Exception excMsg)
+            {
+                MessageBox.Show(excMsg.Message.ToString(), "Error");
+            }
+        }
+
+        private RichTextBox rtbActual()
+        {
+            Control ctrl = tabControl1.Controls[indexTabSeleccionado].Controls[0];
+            if (tabControl1.SelectedTab.Text != Path.GetFileName(nombreArchivo)) //Determinamos si el tab seleccionado ya tiene texto o lo cambiamos por el reciente
+            {
+                tabControl1.Controls[indexTabSeleccionado].Text = Path.GetFileName(nombreArchivo);
+            }
+            RichTextBox rtb = ctrl as RichTextBox;
+            return rtb;
+        }
+
+        private void abrirArchivoToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (tabControl1.Visible)
+            {
+                OpenFileDialog AbrirArchivoDialogo = new OpenFileDialog();
+
+                AbrirArchivoDialogo.Filter = "Archivo er|*.er"; //filtra archivos de extensión ORG
+                AbrirArchivoDialogo.Title = "Abrir Archivo er"; //titulo de la ventana
+                AbrirArchivoDialogo.FileName = "Archivo er"; //nombre inicial a buscar
+
+                string resultadoDialogo = AbrirArchivoDialogo.ShowDialog().ToString(); //guarda resultado de clic en variable resultadoDialogo
+                if (resultadoDialogo == DialogResult.OK.ToString())
+                {
+                    nombreArchivo = AbrirArchivoDialogo.FileName;
+                    if (paths.Contains(nombreArchivo)) //Revisa si el archivo a Abrir ya se encuentra abierto
+                    {
+                        MessageBox.Show("Archivo ya abierto");
+                    }
+                    else
+                    {
+                        indexTabSeleccionado = tabControl1.SelectedIndex;
+                        if (indexTabSeleccionado < paths.Count && paths.Count != 0) //Verifica si el indice de la pestaña seleccionada en las TabPages esta dentro del rango del ArrayList
+                        {
+                            paths.RemoveAt(indexTabSeleccionado);
+                        }
+                        paths.Insert(indexTabSeleccionado, nombreArchivo);
+
+                        //Prueba de carga de archivo
+                        StreamReader lector = new StreamReader(nombreArchivo, Encoding.Default);
+                        rtbActual().Text = lector.ReadToEnd();
+                        lector.Close();
+                    }
+                }
+            }
+            else
+                MessageBox.Show("Agregue una pestaña para insertar el archivo");
+        }
+
+        private void guardarComoToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (tabControl1.Visible)
+            {
+                guardarArchivoDialogo.Filter = "Archivo er|*.er";
+                guardarArchivoDialogo.Title = "Guardar como Archivo er";
+                guardarArchivoDialogo.FileName = "Archivo er";
+
+                string resultadoDialogo = guardarArchivoDialogo.ShowDialog().ToString(); //despliega el form y guarda si acepta o cancela
+                if (resultadoDialogo == DialogResult.OK.ToString())
+                {
+                    nombreArchivo = guardarArchivoDialogo.FileName;
+                    indexTabSeleccionado = tabControl1.SelectedIndex;
+                    paths.RemoveAt(indexTabSeleccionado);
+                    paths.Insert(indexTabSeleccionado, nombreArchivo);
+
+                    StreamWriter escribirFlujo = new StreamWriter(nombreArchivo);
+                    escribirFlujo.Write(rtbActual().Text);
+                    escribirFlujo.Flush(); //fuerza la escritura
+                    escribirFlujo.Close();
+                }
+            }
+            else
+                MessageBox.Show("Agregue una pestaña para guardar el archivo");
+        }
+
+        private void cargarThompsonToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+
+            if (tabControl1.Visible)
+            {
+                indexTabSeleccionado = tabControl1.SelectedIndex;
+
+                //Verifica si los campos pictureBox tienen alguna imagen
+                if (pictureBox1.Image != null)
+                {
+                    pictureBox1.Image.Dispose();
+                    pictureBox1.Image = null;
+                }
+
+                Control ctrl = tabControl1.Controls[indexTabSeleccionado].Controls[0];
+                RichTextBox rtb = ctrl as RichTextBox;
+
+                if (string.IsNullOrEmpty(rtb.Text) == false)
+                {
+                    string lineasDocumento = rtb.Text;
+
+                    Analizador_Lexico lex = new Analizador_Lexico();
+                    listaTokens = lex.analizador(lineasDocumento);
+                    listaTokensError = lex.AnalizadorError();
+                    //Agregamos a la lista un token de finalizacion
+                    listaTokens.Add(new Token(Token.Tipo.ULTIMO, "", 0, 0));
+                    if (listaTokensError.Any())
+                    {
+                        MessageBox.Show("No se pueden cargar las Actividades, existen errores!!!");
+                        imprimirListaTokensErrores(listaTokensError);
+                    }
+                    else
+                    {
+                        listaExpresionesPrefijas = IniciarThompson(listaTokens);
+                        Generador_AFN generador = new Generador_AFN();
+                        rutasImagenes = new List<string>();
+                        numeroRutas = 0;
+                        numeroImagen = 1;
+
+                        int i = 1;
+                        foreach (string EP in listaExpresionesPrefijas)
+                        {
+                            string dot = generador.Generador(EP);
+                            StreamWriter sw = new StreamWriter("C:\\ArchivosProyecto1\\dot" + i + ".txt");
+                            sw.Write(dot);
+                            sw.Close();
+
+                            string ruta = "C:\\ArchivosProyecto1\\dot" + i + ".txt";
+                            string ruta2 = "C:\\ArchivosProyecto1\\AFN" + i + ".png";
+
+                            string cmd = "dot -Tpng " + ruta + " -o " + ruta2;
+
+                            System.Diagnostics.ProcessStartInfo miProceso = new System.Diagnostics.ProcessStartInfo("cmd", "/C " + cmd);
+                            System.Diagnostics.Process.Start(miProceso);
+
+                            i++;
+                            rutasImagenes.Add(ruta2);
+                        }
+
+                        numeroRutas = rutasImagenes.Count;
+                        //-----------------Carga la primera imagen---------------------
+                        System.Threading.Thread.Sleep(3000);
+                        FileStream file = new FileStream(rutasImagenes[0], FileMode.Open);
+                        Image img = Image.FromStream(file);
+                        pictureBox1.Image = img;
+                        file.Close();
+                        //--------------------Fin cargar imagen--------------------------
+
+                    }
+                }
+                else
+                {
+                    MessageBox.Show("Introduza un texto para analizar");
+                }
+            }
+            else
+                MessageBox.Show("Agregue una pestaña para analizar el archivo");
+
+        }
+
+        private void CargarSiguienteImagen()
+        {
+            numeroImagen++;
+            if (numeroRutas < numeroImagen)
+            {
+                numeroImagen = 1;
+            }
+            pictureBox1.ImageLocation = string.Format(@"C:\\ArchivosProyecto1\\AFN{0}.png", numeroImagen);
+            
+        }
+
+        private List<string> IniciarThompson(List<Token> lis)
+        {
+            expresionesPrefijas = new List<string>();
+            bool esAsignacion = false, esReservada = false;
+            string expresionPrefija = "";
+
+            foreach (Token t in lis)
+            {
+                if (t.getTipo() == Token.Tipo.RESERVADA_CONJ)
+                {
+                    esReservada = true;
+                }
+
+                if (esReservada == false)
+                {
+                    if (t.getTipo() == Token.Tipo.ASIGNACION)
+                    {
+                        esAsignacion = true;
+                    }
+
+                    if (esAsignacion)
+                    {
+                        if (t.getTipo() == Token.Tipo.CADENA_STRING | t.getLexema() == "." | t.getLexema() == "|"
+                            | t.getLexema() == "*" | t.getLexema() == "+" | t.getLexema() == "?" | t.getTipo() == Token.Tipo.IDENTIFICADOR)
+                        {
+                            if (t.getTipo() == Token.Tipo.CADENA_STRING)
+                            {
+                                expresionPrefija += t.getLexema().Trim('\"') + ",";
+                            }
+                            else
+                            {
+                                expresionPrefija += t.getLexema() + ",";
+                            }
+
+                        }
+                        else if (t.getLexema() == ";")
+                        {
+                            esAsignacion = false;
+                            expresionesPrefijas.Add(expresionPrefija.TrimEnd(','));
+                            expresionPrefija = "";
+                        }
+                    }
+                }
+                else if (t.getLexema() == ";")
+                {
+                    esReservada = false;
+                }
+
+            }
+
+            return expresionesPrefijas;
+        }
+
+        private void pDFTokenAnalisisInicialToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (tabControl1.Visible)
+            {
+                indexTabSeleccionado = tabControl1.SelectedIndex;
+
+                Control ctrl = tabControl1.Controls[indexTabSeleccionado].Controls[0];
+                RichTextBox rtb = ctrl as RichTextBox;
+                if (string.IsNullOrEmpty(rtb.Text) == false)
+                {
+                    if (pictureBox1.Image != null)
+                    {
+                        string ruta = "C:\\Users\\MI PC\\Desktop\\ListaTokens.pdf";
+
+                        //Creamos instancia el documento
+                        iTextSharp.text.Document doc = new iTextSharp.text.Document(iTextSharp.text.PageSize.A4, 30, 30, 30, 30);
+                        //Definimos un archivo de flujo
+                        FileStream archivo = new FileStream(ruta, FileMode.Create);
+                        //definimos un objeto pdfwriter
+                        iTextSharp.text.pdf.PdfWriter pdfEscritor = iTextSharp.text.pdf.PdfWriter.GetInstance(doc, archivo);
+                        doc.Open();
+
+                        //--------------Todo lo que va escrito en el documento---------------
+                        doc.AddAuthor("Abisai");
+
+                        doc.Add(new iTextSharp.text.Paragraph("UNIVERSIDAD DE SAN CARLOS DE GUATEMALA\n" +
+                                              "FACULTAD DE INGENIERIA\n" +
+                                              "ESCUELA DE CIENCIAS\n" +
+                                              "INGENIERIA EN CIENCIAS Y SISTEMAS\n" +
+                                              "ORGANIZACION DE LENGUAJES Y COMPILADORES 1"));
+
+                        //Dim rutaLogoUsac As String = "C:\Users\MI PC\Documents\Visual Studio 2017\Proyectos\Proyecto_2\Proyecto_2\bin\Debug\logo_Usac.png" // - --> otra manera de adjuntar imagen
+                        iTextSharp.text.Image logoUsac = iTextSharp.text.Image.GetInstance("logo_Usac.png"); //New Uri(rutaLogoUsac)) // - --> otra manera de adjuntar ruta
+                        logoUsac.ScaleToFit(150.0f, 150.0f);
+                        logoUsac.SetAbsolutePosition(doc.PageSize.Width - 170.0f, doc.PageSize.Height - 170.0f);
+                        doc.Add(logoUsac);
+
+                        doc.Add(new iTextSharp.text.Paragraph("\n\n\n\n"));
+
+                        doc.Add(new iTextSharp.text.Phrase("Archivo Fuente: " + Path.GetFileName(nombreArchivo)));
+
+                        doc.Add(new iTextSharp.text.Paragraph("\n\n\n"));
+
+                        iTextSharp.text.pdf.PdfPTable tablaTokens = new iTextSharp.text.pdf.PdfPTable(5);
+                        tablaTokens.WidthPercentage = 100.0f;
+                        Single[] anchosColumnas = { 10, 50, 30, 10, 15 };
+                        tablaTokens.SetWidths(anchosColumnas);
+                        //tablaTokens.DefaultCell.FixedHeight = 30.0f;
+
+                        tablaTokens.AddCell(new iTextSharp.text.Paragraph("No."));
+                        tablaTokens.AddCell(new iTextSharp.text.Paragraph("Lexema/Token"));
+                        tablaTokens.AddCell(new iTextSharp.text.Paragraph("Tipo de Token"));
+                        tablaTokens.AddCell(new iTextSharp.text.Paragraph("Fila"));
+                        tablaTokens.AddCell(new iTextSharp.text.Paragraph("Columna"));
+
+                        int indiceLista = 1;
+                        foreach (Token t in listaTokens)
+                        {
+                            tablaTokens.AddCell(new iTextSharp.text.Paragraph(indiceLista.ToString()));
+                            tablaTokens.AddCell(new iTextSharp.text.Paragraph(t.getLexema()));
+                            tablaTokens.AddCell(new iTextSharp.text.Paragraph(t.getTipoTokenEnString()));
+                            tablaTokens.AddCell(new iTextSharp.text.Paragraph(t.getFila().ToString()));
+                            tablaTokens.AddCell(new iTextSharp.text.Paragraph(t.getColumna().ToString()));
+                            indiceLista++;
+                        }
+                        doc.Add(tablaTokens);
+
+                        doc.Close();
+                        archivo.Close();
+
+                        MessageBox.Show("Reporte de Tokens Creado");
+                    }
+                    else
+                    {
+                        MessageBox.Show("Analice un documento para generar un PDF");
+                    }
+                }
+                else
+                {
+                    MessageBox.Show("Introduza un texto para generar un PDF");
+                }
+            }
+            else
+                MessageBox.Show("Agregue una pestaña para generar un PDF");
+        }
+
+        //Imprime la lista de errores generados
+        private void imprimirListaTokensErrores(List<Token_Error> lisError)
+        {
+            string ruta = "C:\\Users\\MI PC\\Desktop\\ListaTokensErrores.pdf";
+
+            //Creamos instancia el documento
+            iTextSharp.text.Document doc = new iTextSharp.text.Document(iTextSharp.text.PageSize.A4, 30, 30, 30, 30);
+            //Definimos un archivo de flujo
+            FileStream archivo = new FileStream(ruta, FileMode.Create);
+            //definimos un objeto pdfwriter
+            iTextSharp.text.pdf.PdfWriter pdfEscritor = iTextSharp.text.pdf.PdfWriter.GetInstance(doc, archivo);
+            doc.Open();
+
+            //--------------Todo lo que va escrito en el documento---------------
+            doc.AddAuthor("Abisai");
+
+            doc.Add(new iTextSharp.text.Paragraph("UNIVERSIDAD DE SAN CARLOS DE GUATEMALA\n" +
+                                  "FACULTAD DE INGENIERIA\n" +
+                                  "ESCUELA DE CIENCIAS\n" +
+                                  "INGENIERIA EN CIENCIAS Y SISTEMAS\n" +
+                                  "ORGANIZACION DE LENGUAJES Y COMPILADORES 1"));
+
+            //Dim rutaLogoUsac As String = "C:\Users\MI PC\Documents\Visual Studio 2017\Proyectos\Proyecto_2\Proyecto_2\bin\Debug\logo_Usac.png" // - --> otra manera de adjuntar imagen
+            iTextSharp.text.Image logoUsac = iTextSharp.text.Image.GetInstance("logo_Usac.png"); //New Uri(rutaLogoUsac)) // - --> otra manera de adjuntar ruta
+            logoUsac.ScaleToFit(150.0f, 150.0f);
+            logoUsac.SetAbsolutePosition(doc.PageSize.Width - 170.0f, doc.PageSize.Height - 170.0f);
+            doc.Add(logoUsac);
+
+            doc.Add(new iTextSharp.text.Paragraph("\n\n\n\n"));
+
+            doc.Add(new iTextSharp.text.Phrase("Archivo Fuente: " + Path.GetFileName(nombreArchivo)));
+
+            doc.Add(new iTextSharp.text.Paragraph("\n\n\n"));
+
+            iTextSharp.text.pdf.PdfPTable tablaTokens = new iTextSharp.text.pdf.PdfPTable(6);
+            tablaTokens.WidthPercentage = 100.0f;
+            Single[] anchosColumnas = { 10, 20, 20, 50, 10, 15 };
+            tablaTokens.SetWidths(anchosColumnas);
+            //tablaTokens.DefaultCell.FixedHeight = 30.0f;
+
+            tablaTokens.AddCell(new iTextSharp.text.Paragraph("No."));
+            tablaTokens.AddCell(new iTextSharp.text.Paragraph("Caracter"));
+            tablaTokens.AddCell(new iTextSharp.text.Paragraph("Tipo de Error"));
+            tablaTokens.AddCell(new iTextSharp.text.Paragraph("Descripcion"));
+            tablaTokens.AddCell(new iTextSharp.text.Paragraph("Fila"));
+            tablaTokens.AddCell(new iTextSharp.text.Paragraph("Columna"));
+
+            int indiceLista = 1;
+            foreach (Token_Error t in lisError)
+            {
+                tablaTokens.AddCell(new iTextSharp.text.Paragraph(indiceLista.ToString()));
+                tablaTokens.AddCell(new iTextSharp.text.Paragraph(t.getCaracterError()));
+                tablaTokens.AddCell(new iTextSharp.text.Paragraph(t.getTipoTokenErrorEnString()));
+                tablaTokens.AddCell(new iTextSharp.text.Paragraph(t.getDescripcionerror()));
+                tablaTokens.AddCell(new iTextSharp.text.Paragraph(t.getFilaError().ToString()));
+                tablaTokens.AddCell(new iTextSharp.text.Paragraph(t.getColumnaError().ToString()));
+                indiceLista++;
+                //Console.WriteLine(t.getCaracterError() + " <---> " + t.getTipoTokenErrorEnString() + " <---> " + t.getDescripcionerror() + " <---> " + t.getFilaError() + " <---> " + t.getColumnaError());
+            }
+            doc.Add(tablaTokens);
+
+            doc.Close();
+            archivo.Close();
+
+            MessageBox.Show("Reporte de Errores Creado");
+        }
+
+        private void button1_Click(object sender, EventArgs e)
+        {
+            CargarSiguienteImagen();
+        }
+    }
+}

@@ -12,6 +12,9 @@ from tkinter import StringVar
 from tkinter import END
 #from tkinter import filedialog
 import os
+from Analizador_Lexico_Javascript import Analizador_Lexico_Javascript
+from Token import Token
+#from Token import Tipo
 
 class GUI:
 
@@ -72,7 +75,7 @@ class GUI:
         self.txtConsola.place(x = 50, y = 490)
         self.txtConsola.config(state = "disabled")
 
-        self.btn1 = Button(self.wind, text = "Analizar .JS", bg = "black", fg = "white", width = 15, height = 2)#, command=self.Analyze)    #btn Analyze
+        self.btn1 = Button(self.wind, text = "Analizar .JS", bg = "black", fg = "white", width = 15, height = 2, command=self.analizar_Javascript)    #btn Analyze
         self.btn1.place(x=750, y = 50)
         self.btn1.config(state = "disabled")
         self.btn2 = Button(self.wind, text = "Analizar .CSS", bg = "black", fg = "white", width = 15, height = 2)#, command=self.Analyze)    #btn Analyze
@@ -92,6 +95,9 @@ class GUI:
         global ruta
         self.mensaje.set("Nuevo fichero")
         self.txtEntrada.delete(1.0, END)
+        self.txtConsola.config(state = "normal")
+        self.txtConsola.delete(1.0, END)
+        self.txtConsola.config(state = "disabled")
         self.tab_control.tab("current", text = "Undefined")
         self.btn1.config(state = "disabled")
         self.btn2.config(state = "disabled")
@@ -174,6 +180,26 @@ class GUI:
             self.btn3.config(state = "normal")
             self.btn1.config(state = "disabled")
             self.btn2.config(state = "disabled")
+
+    def analizar_Javascript(self):
+        contenido = self.txtEntrada.get(1.0, "end-1c")
+        if contenido.strip():   #strip() retorna True si hay escritura en la variable contenido
+            analizador = Analizador_Lexico_Javascript()
+            listaTokens = analizador.analizador_Javascript(contenido)
+            contenidoConsola = ""
+            self.token = Token
+            for self.token in listaTokens:
+                contenidoConsola += "Lexema: " + self.token.getLexema() + "  <----> Tipo: " + self.token.getTipoEnString() + "  <----> Fila: " + str(self.token.getFila()) + "  <----> Columna: " + str(self.token.getColumna()) + "\n"
+                ##print("Lexema: " + self.token.getLexema() + "  <----> Tipo: " + self.token.getTipoEnString() + "  <----> Fila: " + str(self.token.getFila()) + "  <----> Columna: " + str(self.token.getColumna()))
+            self.txtConsola.config(state = "normal")
+            self.txtConsola.delete(1.0, END)
+            self.txtConsola.insert(1.0, contenidoConsola)
+            self.txtConsola.config(state = "disabled")
+            #print(contenidoConsola)
+        else:
+            messagebox.showinfo("Editor vacio", "Cargue un archivo o ingrese contenido")
+            #print("texto vacio!")
+            
 
     '''
     def Analyze(self):
