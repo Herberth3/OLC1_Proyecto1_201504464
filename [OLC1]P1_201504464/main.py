@@ -14,8 +14,10 @@ import os
 
 from Analizador_Lexico_Javascript import Analizador_Lexico_Javascript
 from Analizador_Lexico_Css import Analizador_Lexico_Css
+from Analizador_Lexico_Html import Analizador_Lexico_Html
 from Token import Token
 from Token_Css import Token_Css
+from Token_Html import Token_Html
 
 class GUI:
 
@@ -205,10 +207,13 @@ class GUI:
                     ##print("Lexema: " + self.token.getLexema() + "  <----> Tipo: " + self.token.getTipoEnString() + "  <----> Fila: " + str(self.token.getFila()) + "  <----> Columna: " + str(self.token.getColumna()))
                 
             elif extension == ".html":
-                print("Estoy en un archivo html")
+                analizador = Analizador_Lexico_Html()
+                listaTokens = analizador.analizador_Html(contenido)
+                self.token = Token_Html
+                for self.token in listaTokens:
+                    contenidoConsola += "Lexema: " + self.token.getLexema() + "  <----> Tipo: " + self.token.getTipoEnString() + "  <----> Fila: " + str(self.token.getFila()) + "  <----> Columna: " + str(self.token.getColumna()) + "\n"
+                    ##print("Lexema: " + self.token.getLexema() + "  <----> Tipo: " + self.token.getTipoEnString() + "  <----> Fila: " + str(self.token.getFila()) + "  <----> Columna: " + str(self.token.getColumna()))
 
-            
-            
             self.txtConsola.config(state = "normal")
             self.txtConsola.delete(1.0, END)
             self.txtConsola.insert(1.0, contenidoConsola)
