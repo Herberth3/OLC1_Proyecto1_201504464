@@ -10,11 +10,12 @@ from tkinter import messagebox
 from tkinter import Text
 from tkinter import StringVar
 from tkinter import END
-#from tkinter import filedialog
 import os
+
 from Analizador_Lexico_Javascript import Analizador_Lexico_Javascript
+from Analizador_Lexico_Css import Analizador_Lexico_Css
 from Token import Token
-#from Token import Tipo
+from Token_Css import Token_Css
 
 class GUI:
 
@@ -75,13 +76,13 @@ class GUI:
         self.txtConsola.place(x = 50, y = 490)
         self.txtConsola.config(state = "disabled")
 
-        self.btn1 = Button(self.wind, text = "Analizar .JS", bg = "black", fg = "white", width = 15, height = 2, command=self.analizar_Javascript)    #btn Analyze
+        self.btn1 = Button(self.wind, text = "Analizar .JS", bg = "black", fg = "white", width = 15, height = 2, command=self.analizar_Archivo)    #btn Analyze
         self.btn1.place(x=750, y = 50)
         self.btn1.config(state = "disabled")
-        self.btn2 = Button(self.wind, text = "Analizar .CSS", bg = "black", fg = "white", width = 15, height = 2)#, command=self.Analyze)    #btn Analyze
+        self.btn2 = Button(self.wind, text = "Analizar .CSS", bg = "black", fg = "white", width = 15, height = 2, command=self.analizar_Archivo)    #btn Analyze
         self.btn2.place(x=750, y = 110)
         self.btn2.config(state = "disabled")
-        self.btn3 = Button(self.wind, text = "Analizar .HTML", bg = "black", fg = "white", width = 15, height = 2)#, command=self.Analyze)    #btn Analyze
+        self.btn3 = Button(self.wind, text = "Analizar .HTML", bg = "black", fg = "white", width = 15, height = 2, command=self.analizar_Archivo)    #btn Analyze
         self.btn3.place(x=750, y = 170)
         self.btn3.config(state = "disabled")
         #self.tab_control.tab("current", text = "lol")
@@ -118,10 +119,10 @@ class GUI:
         )
 
         if ruta != "":
-            fichero = open(ruta, "r")
+            fichero = open(ruta, "r", encoding="utf-8")
             contenido = fichero.read()
             self.txtEntrada.delete(1.0, "end")
-            self.txtEntrada.insert("insert", contenido)
+            self.txtEntrada.insert(1.0, contenido)
             fichero.close()
             self.configuracionArchivoActual(ruta)
 
@@ -131,7 +132,7 @@ class GUI:
 
         if ruta != "":
             contenido = self.txtEntrada.get(1.0, "end-1c") #recuperamos el texto -1 char
-            fichero = open(ruta, "w+")
+            fichero = open(ruta, "w+", encoding="utf-8")
             fichero.write(contenido)
             fichero.close()
             self.configuracionArchivoActual(ruta)
@@ -181,16 +182,33 @@ class GUI:
             self.btn1.config(state = "disabled")
             self.btn2.config(state = "disabled")
 
-    def analizar_Javascript(self):
+    def analizar_Archivo(self):
         contenido = self.txtEntrada.get(1.0, "end-1c")
         if contenido.strip():   #strip() retorna True si hay escritura en la variable contenido
-            analizador = Analizador_Lexico_Javascript()
-            listaTokens = analizador.analizador_Javascript(contenido)
             contenidoConsola = ""
-            self.token = Token
-            for self.token in listaTokens:
-                contenidoConsola += "Lexema: " + self.token.getLexema() + "  <----> Tipo: " + self.token.getTipoEnString() + "  <----> Fila: " + str(self.token.getFila()) + "  <----> Columna: " + str(self.token.getColumna()) + "\n"
-                ##print("Lexema: " + self.token.getLexema() + "  <----> Tipo: " + self.token.getTipoEnString() + "  <----> Fila: " + str(self.token.getFila()) + "  <----> Columna: " + str(self.token.getColumna()))
+            extension = os.path.splitext(ruta)[1]
+
+            if extension == ".js":
+                analizador = Analizador_Lexico_Javascript()
+                listaTokens = analizador.analizador_Javascript(contenido)
+                self.token = Token
+                for self.token in listaTokens:
+                    contenidoConsola += "Lexema: " + self.token.getLexema() + "  <----> Tipo: " + self.token.getTipoEnString() + "  <----> Fila: " + str(self.token.getFila()) + "  <----> Columna: " + str(self.token.getColumna()) + "\n"
+                    ##print("Lexema: " + self.token.getLexema() + "  <----> Tipo: " + self.token.getTipoEnString() + "  <----> Fila: " + str(self.token.getFila()) + "  <----> Columna: " + str(self.token.getColumna()))
+                
+            elif extension == ".css":
+                analizador = Analizador_Lexico_Css()
+                listaTokens = analizador.analizador_Css(contenido)
+                self.token = Token_Css
+                for self.token in listaTokens:
+                    contenidoConsola += "Lexema: " + self.token.getLexema() + "  <----> Tipo: " + self.token.getTipoEnString() + "  <----> Fila: " + str(self.token.getFila()) + "  <----> Columna: " + str(self.token.getColumna()) + "\n"
+                    ##print("Lexema: " + self.token.getLexema() + "  <----> Tipo: " + self.token.getTipoEnString() + "  <----> Fila: " + str(self.token.getFila()) + "  <----> Columna: " + str(self.token.getColumna()))
+                
+            elif extension == ".html":
+                print("Estoy en un archivo html")
+
+            
+            
             self.txtConsola.config(state = "normal")
             self.txtConsola.delete(1.0, END)
             self.txtConsola.insert(1.0, contenidoConsola)
@@ -199,17 +217,6 @@ class GUI:
         else:
             messagebox.showinfo("Editor vacio", "Cargue un archivo o ingrese contenido")
             #print("texto vacio!")
-            
-
-    '''
-    def Analyze(self):
-        entrada = self.txtEntrada.get("1.0", END) #fila 1 col 0 hasta fila 2 col 10
-        retorno = lexer(entrada)
-        self.txtConsola.delete("1.0", END)
-        self.txtConsola.insert("1.0", retorno)
-        messagebox.showinfo('Project 1', 'Analysis Finished')
-    '''
-    
 
 
 if __name__ == "__main__":

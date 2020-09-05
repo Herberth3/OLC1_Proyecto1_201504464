@@ -21,41 +21,43 @@ class Tipo(Enum):
     RESERVADA_POW = 18
     RESERVADA_TRUE = 19
     RESERVADA_FALSE = 20
-    VARIABLE = 21
-    NUMERO_ENTERO = 22
-    NUMERO_DECIMAL = 23
-    COMENTARIO_LINEA = 24
-    COMENTARIO_BLOQUE = 25
-    CADENA_STRING = 26
-    SIGNO_AND = 27
-    SIGNO_OR = 28
-    SIGNO_POS_INCREMENTO = 29
-    SIGNO_POS_DECREMENTO = 30
-    SIGNO_SUMA_CONCATENADA = 31
-    SIGNO_RESTA_CONCATENADA = 32
-    SIGNO_LAMBDA = 33
-    SIGNO_IGUAL = 34
-    SIGNO_DOBLE_IGUAL = 35
-    SIGNO_MENOR_QUE = 36
-    SIGNO_MAYOR_QUE = 37
-    SIGNO_MENOR_IGUAL_QUE = 38
-    SIGNO_MAYOR_IGUAL_QUE = 39
-    SIGNO_DIFERENTE_DE = 40
-    SIGNO_NEGACION = 41
-    SIGNO_ASIGNACION = 42
-    SIGNO_MAS = 43
-    SIGNO_MENOS = 44
-    SIGNO_POR = 45
-    SIGNO_DIVISION = 46
-    LLAVE_IZQ = 47
-    LLAVE_DER = 48
-    PARENTESIS_IZQ = 49
-    PARENTESIS_DER = 50
-    COMA = 51
-    PUNTO_Y_COMA = 52
-    DOS_PUNTOS = 53
-    PUNTO = 54
-    DESCONOCIDO = 55
+    RESERVADA_THIS = 21
+    RESERVADA_CONSOLE = 22
+    VARIABLE = 23
+    NUMERO_ENTERO = 24
+    NUMERO_DECIMAL = 25
+    COMENTARIO_LINEA = 26
+    COMENTARIO_BLOQUE = 27
+    CADENA_STRING = 28
+    SIGNO_AND = 29
+    SIGNO_OR = 30
+    SIGNO_POS_INCREMENTO = 31
+    SIGNO_POS_DECREMENTO = 32
+    SIGNO_SUMA_CONCATENADA = 33
+    SIGNO_RESTA_CONCATENADA = 34
+    SIGNO_LAMBDA = 35
+    SIGNO_IGUAL = 36
+    SIGNO_DOBLE_IGUAL = 37
+    SIGNO_MENOR_QUE = 38
+    SIGNO_MAYOR_QUE = 39
+    SIGNO_MENOR_IGUAL_QUE = 40
+    SIGNO_MAYOR_IGUAL_QUE = 41
+    SIGNO_DIFERENTE_DE = 42
+    SIGNO_NEGACION = 43
+    SIGNO_ASIGNACION = 44
+    SIGNO_MAS = 45
+    SIGNO_MENOS = 46
+    SIGNO_POR = 47
+    SIGNO_DIVISION = 48
+    LLAVE_IZQ = 49
+    LLAVE_DER = 50
+    PARENTESIS_IZQ = 51
+    PARENTESIS_DER = 52
+    COMA = 53
+    PUNTO_Y_COMA = 54
+    DOS_PUNTOS = 55
+    PUNTO = 56
+    DESCONOCIDO = 57
 
 
 class Token:
@@ -125,6 +127,10 @@ class Token:
             self.nombreToken = "Reservada_True"
         elif self.__tipoToken == Tipo.RESERVADA_FALSE:
             self.nombreToken = "Reservada_False"
+        elif self.__tipoToken == Tipo.RESERVADA_THIS:
+            self.nombreToken = "Reservada_This"
+        elif self.__tipoToken == Tipo.RESERVADA_CONSOLE:
+            self.nombreToken = "Reservada_Console"
         elif self.__tipoToken == Tipo.VARIABLE:
             self.nombreToken = "Variable"
         elif self.__tipoToken == Tipo.NUMERO_ENTERO:

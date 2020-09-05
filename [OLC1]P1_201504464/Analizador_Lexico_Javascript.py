@@ -84,7 +84,8 @@ class Analizador_Lexico_Javascript:
                             messagebox.showerror("Alerta", "Se han encontrado errores léxicos")
                             self.imprimirLista()
                         messagebox.showinfo("Aviso", "Análisis léxico satisfactorio")
-                    self.addTokenError(self.c, self.filaToken, self.columnaToken)
+                    else:
+                        self.addTokenError(self.c, self.filaToken, self.columnaToken)
             #ESTADO S1
             elif self.estado == 1:
                 if self.c.isalpha() or self.c.isdigit() or self.c == "_":
@@ -131,6 +132,10 @@ class Analizador_Lexico_Javascript:
                         self.addToken(Tipo.RESERVADA_TRUE, self.filaToken, self.columnaToken - len(self.auxLexema))
                     elif self.auxLexema == "false":
                         self.addToken(Tipo.RESERVADA_FALSE, self.filaToken, self.columnaToken - len(self.auxLexema))
+                    elif self.auxLexema == "this":
+                        self.addToken(Tipo.RESERVADA_THIS, self.filaToken, self.columnaToken - len(self.auxLexema))
+                    elif self.auxLexema == "console":
+                        self.addToken(Tipo.RESERVADA_CONSOLE, self.filaToken, self.columnaToken - len(self.auxLexema))
                     else:
                         self.addToken(Tipo.VARIABLE, self.filaToken, self.columnaToken - len(self.auxLexema))
                     i -= 1
@@ -282,7 +287,15 @@ class Analizador_Lexico_Javascript:
                     self.auxLexema += self.c
                 else:
                     #---Validaciones para COMENTARIO_BLOQUE-----
-                    if self.c == "\n":          #Incrementa la filaToken para no perder la posición durante un comentario bloque
+                    if self.c == "#" and i == len(self.textoDocumento) - 1:   #validacion si el COMENTARIO_BLOQUE esta en la ultima linea
+                        if self.inicioComentarioBloque:
+                            self.addTokenError(self.auxLexema, self.filaComentarioBloque, self.columnaComentarioBloque)
+                        else:
+                            self.addTokenError(self.auxLexema, self.filaToken, self.columnaToken - len(self.auxLexema))
+                        #i -= 1
+                        self.columnaToken -= 1      #Se reduce en 1 columnaToken para no alterar la posición de #
+                        continue
+                    elif self.c == "\n":          #Incrementa la filaToken para no perder la posición durante un comentario bloque
                         if self.inicioComentarioBloque == False:        #Indica cuando comienza el comentario bloque para obtener la posición columna y fila
                             self.columnaComentarioBloque = self.columnaToken - len(self.auxLexema)
                             self.filaComentarioBloque = self.filaToken
@@ -298,8 +311,8 @@ class Analizador_Lexico_Javascript:
                     self.estado = 26
                     #---Validaciones para COMENTARIO_LINEA-----
                     self.estadoComentario = 17
-                    i -= 1
-                    self.columnaToken -= 1      #Se reduce en 1 columnaToken para analizar el \n ya que no se adjunta a la cadena
+                    i -= 1                      #Se reduce en 1 el iterador i para analizar el \n ya que no se adjunta a la cadena
+                    self.columnaToken -= 1
                     #---Validaciones para COMENTARIO_LINEA-----
                 elif self.c == "#" and i == len(self.textoDocumento) - 1:   #validacion si el COMENTARIO_LINEA esta en la ultima linea
                     self.estado = 26
@@ -349,7 +362,7 @@ class Analizador_Lexico_Javascript:
             elif self.estado == 23:
                 if self.auxLexema == "<=":
                     self.addToken(Tipo.SIGNO_MENOR_IGUAL_QUE, self.filaToken, self.columnaToken - len(self.auxLexema))
-                elif self.auxLexema == "=>":
+                elif self.auxLexema == ">=":
                     self.addToken(Tipo.SIGNO_MAYOR_IGUAL_QUE, self.filaToken, self.columnaToken - len(self.auxLexema))
                 elif self.auxLexema == "!=":
                     self.addToken(Tipo.SIGNO_DIFERENTE_DE, self.filaToken, self.columnaToken - len(self.auxLexema))
@@ -375,16 +388,35 @@ class Analizador_Lexico_Javascript:
                     self.estadoComentario = 25
                     #---Validaciones para COMENTARIO_BLOQUE-----
                 elif self.c == "*":
-                    self.estado = 25
-                    self.auxLexema += self.c
-                else:
+                    #Cofigo prueba----FUNCIONO EXCELENTE
                     self.estado = 16
-                    self.auxLexema += self.c
+                    i -= 1
+                    self.columnaToken -= 1
+                    #Cofigo prueba----FUNCIONO EXCELENTE
+                    #Codigo original-------
+                    #self.estado = 25
+                    #self.auxLexema += self.c
+                    #Codigo original-------
+                else:
                     #---Validaciones para COMENTARIO_BLOQUE-----
-                    if self.c == "\n":          #Incrementa la filaToken para no perder la posición durante un comentario bloque
+                    if self.c == "#" and i == len(self.textoDocumento) - 1:   #validacion si el COMENTARIO_BLOQUE esta en la ultima linea
+                        if self.inicioComentarioBloque:
+                            self.addTokenError(self.auxLexema, self.filaComentarioBloque, self.columnaComentarioBloque)
+                        else:
+                            self.addTokenError(self.auxLexema, self.filaToken, self.columnaToken - len(self.auxLexema))
+                        #i -= 1
+                        self.columnaToken -= 1      #Se reduce en 1 columnaToken para no alterar la posición de #
+                        continue
+                    elif self.c == "\n":          #Incrementa la filaToken para no perder la posición durante un comentario bloque
+                        if self.inicioComentarioBloque == False:        #Indica cuando comienza el comentario bloque para obtener la posición columna y fila
+                            self.columnaComentarioBloque = self.columnaToken - len(self.auxLexema)
+                            self.filaComentarioBloque = self.filaToken
+                            self.inicioComentarioBloque = True
                         self.filaToken += 1
                         self.columnaToken = 0
                     #---Validaciones para COMENTARIO_BLOQUE-----
+                    self.estado = 16
+                    self.auxLexema += self.c
             #ESTADO S26
             elif self.estado == 26:
                 if self.estadoComentario == 17:
