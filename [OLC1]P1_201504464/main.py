@@ -11,6 +11,7 @@ from tkinter import Text
 from tkinter import StringVar
 from tkinter import END
 import os
+import webbrowser   #Abrir un archivo en el navegador
 
 from Analizador_Lexico_Javascript import Analizador_Lexico_Javascript
 from Analizador_Lexico_Css import Analizador_Lexico_Css
@@ -18,6 +19,7 @@ from Analizador_Lexico_Html import Analizador_Lexico_Html
 from Token import Token
 from Token_Css import Token_Css
 from Token_Html import Token_Html
+from Token_Error import Token_Error
 
 class GUI:
 
@@ -46,7 +48,11 @@ class GUI:
 
         #Reporte bar
         self.itemReporte = Menu(self.menu, tearoff = 0)
-        self.itemReporte.add_command(label = "Errores")
+        self.itemReporte.add_command(label = "Reporte Javascript", command = self.generarReporteJavascript)
+        self.itemReporte.add_separator()
+        self.itemReporte.add_command(label = "Reporte Css", command = self.generarReporteCss)
+        self.itemReporte.add_separator()
+        self.itemReporte.add_command(label = "Reporte Html", command = self.generarReporteHtml)
         self.itemReporte.add_separator()
         self.itemReporte.add_command(label = "Arbol")
 
@@ -93,6 +99,14 @@ class GUI:
         self.mensaje.set("Bienvenido a tu editor")
         self.monitor = Label(self.wind, textvar = self.mensaje, justify = "right")
         self.monitor.place(x = 0, y = 658)
+
+        #Iniciando la ventana borra los reportes de errores
+        if os.path.exists("ReporteErroresJavascript.html"):
+            os.remove("ReporteErroresJavascript.html")
+        if os.path.exists("ReporteErroresCss.html"):
+            os.remove("ReporteErroresCss.html")
+        if os.path.exists("ReporteErroresHtml.html"):
+            os.remove("ReporteErroresHtml.html")
     
     def nuevo(self):
         global ruta
@@ -119,14 +133,24 @@ class GUI:
             ),
             title = "Abrir un fichero."
         )
-
+        
         if ruta != "":
             fichero = open(ruta, "r", encoding="utf-8")
             contenido = fichero.read()
             self.txtEntrada.delete(1.0, "end")
             self.txtEntrada.insert(1.0, contenido)
             fichero.close()
+            self.txtConsola.config(state = "normal")
+            self.txtConsola.delete(1.0, END)
+            self.txtConsola.config(state = "disabled")
             self.configuracionArchivoActual(ruta)
+            extension = os.path.splitext(ruta)[1]
+            if os.path.exists("ReporteErroresJavascript.html") and extension == ".js":
+                os.remove("ReporteErroresJavascript.html")
+            if os.path.exists("ReporteErroresCss.html") and extension == ".css":
+                os.remove("ReporteErroresCss.html")
+            if os.path.exists("ReporteErroresHtml.html") and extension == ".html":
+                os.remove("ReporteErroresHtml.html")
 
     def guardar(self):
         global ruta
@@ -155,7 +179,7 @@ class GUI:
         if fichero is not None:
             ruta = fichero.name #El atributo name es la ruta completa, si está abierto
             contenido = self.txtEntrada.get(1.0, "end-1c") #recuperamos el texto
-            fichero = open(ruta, "w+") #creamos el fichero o abrimos
+            fichero = open(ruta, "w+", encoding="utf-8") #creamos el fichero o abrimos
             fichero.write(contenido)
             fichero.close()
             self.configuracionArchivoActual(ruta)
@@ -189,30 +213,45 @@ class GUI:
         if contenido.strip():   #strip() retorna True si hay escritura en la variable contenido
             contenidoConsola = ""
             extension = os.path.splitext(ruta)[1]
+            nuevoContenido = ""
+            self.reporteErrorActual = ""
 
             if extension == ".js":
                 analizador = Analizador_Lexico_Javascript()
                 listaTokens = analizador.analizador_Javascript(contenido)
-                self.token = Token
-                for self.token in listaTokens:
-                    contenidoConsola += "Lexema: " + self.token.getLexema() + "  <----> Tipo: " + self.token.getTipoEnString() + "  <----> Fila: " + str(self.token.getFila()) + "  <----> Columna: " + str(self.token.getColumna()) + "\n"
+                nuevoContenido = analizador.getRecolectorND()
+                self.reporteErrorActual = "ReporteErroresJavascript.html"
+                #self.token = Token
+                #for self.token in listaTokens:
+                    #contenidoConsola += "Lexema: " + self.token.getLexema() + "  <----> Tipo: " + self.token.getTipoEnString() + "  <----> Fila: " + str(self.token.getFila()) + "  <----> Columna: " + str(self.token.getColumna()) + "\n"
                     ##print("Lexema: " + self.token.getLexema() + "  <----> Tipo: " + self.token.getTipoEnString() + "  <----> Fila: " + str(self.token.getFila()) + "  <----> Columna: " + str(self.token.getColumna()))
                 
             elif extension == ".css":
                 analizador = Analizador_Lexico_Css()
                 listaTokens = analizador.analizador_Css(contenido)
-                self.token = Token_Css
-                for self.token in listaTokens:
-                    contenidoConsola += "Lexema: " + self.token.getLexema() + "  <----> Tipo: " + self.token.getTipoEnString() + "  <----> Fila: " + str(self.token.getFila()) + "  <----> Columna: " + str(self.token.getColumna()) + "\n"
+                nuevoContenido = analizador.getRecolectorND()
+                self.reporteErrorActual = "ReporteErroresCss.html"
+                #self.token = Token_Css
+                #for self.token in listaTokens:
+                    #contenidoConsola += "Lexema: " + self.token.getLexema() + "  <----> Tipo: " + self.token.getTipoEnString() + "  <----> Fila: " + str(self.token.getFila()) + "  <----> Columna: " + str(self.token.getColumna()) + "\n"
                     ##print("Lexema: " + self.token.getLexema() + "  <----> Tipo: " + self.token.getTipoEnString() + "  <----> Fila: " + str(self.token.getFila()) + "  <----> Columna: " + str(self.token.getColumna()))
                 
             elif extension == ".html":
                 analizador = Analizador_Lexico_Html()
                 listaTokens = analizador.analizador_Html(contenido)
-                self.token = Token_Html
-                for self.token in listaTokens:
-                    contenidoConsola += "Lexema: " + self.token.getLexema() + "  <----> Tipo: " + self.token.getTipoEnString() + "  <----> Fila: " + str(self.token.getFila()) + "  <----> Columna: " + str(self.token.getColumna()) + "\n"
+                nuevoContenido = analizador.getRecolectorND()
+                self.reporteErrorActual = "ReporteErroresHtml.html"
+                #self.token = Token_Html
+                #for self.token in listaTokens:
+                    #contenidoConsola += "Lexema: " + self.token.getLexema() + "  <----> Tipo: " + self.token.getTipoEnString() + "  <----> Fila: " + str(self.token.getFila()) + "  <----> Columna: " + str(self.token.getColumna()) + "\n"
                     ##print("Lexema: " + self.token.getLexema() + "  <----> Tipo: " + self.token.getTipoEnString() + "  <----> Fila: " + str(self.token.getFila()) + "  <----> Columna: " + str(self.token.getColumna()))
+
+            listaErrores = analizador.analizador_Error()
+            if len(listaErrores) > 0:
+                self.guardarND(listaTokens, extension, nuevoContenido)
+                contenidoConsola = analizador.imprimirListaErrores()
+                self.generarHTML_Errores(listaErrores, extension)
+                webbrowser.open_new_tab(self.reporteErrorActual) #Abre un archivo en un nuevo tab del navegador
 
             self.txtConsola.config(state = "normal")
             self.txtConsola.delete(1.0, END)
@@ -222,6 +261,105 @@ class GUI:
         else:
             messagebox.showinfo("Editor vacio", "Cargue un archivo o ingrese contenido")
             #print("texto vacio!")
+
+    def guardarND(self, listaT, ext, contenido):
+        self.listT = listaT
+        self.ext = ext
+        self.cont = contenido
+        nombreArchivo = os.path.split(ruta)[1]
+        
+        if self.ext == ".js":
+            self.token = Token
+            self.token = self.listT[0]
+            self.path = str(self.token.getLexema()).replace("//PATHW:", "")
+            self.path += nombreArchivo
+        elif self.ext == ".css":
+            self.token = Token_Css
+            self.token = self.listT[0]
+            self.path = str(self.token.getLexema()).lstrip("/*PATHW:")
+            self.path = self.path.rstrip("*/")
+            self.path += "/" + nombreArchivo
+        elif self.ext == ".html":
+            self.token = Token_Html
+            self.token = self.listT[0]
+            self.path = str(self.token.getLexema()).lstrip("<!-PATHW:")
+            self.path = self.path.rstrip("->")
+            self.path += nombreArchivo
+        
+        fichero = open(self.path, "w+", encoding="utf-8")
+        fichero.write(self.cont)
+        fichero.close()
+        self.mensaje.set("Nuevo fichero generado existosamente")
+
+    def generarHTML_Errores(self, listaE, ext):
+        self.listE = listaE
+        self.ext = ext
+        self.tokenError = Token_Error
+        indiceLista = 1
+        nombreArchivoActual = os.path.split(ruta)[1]
+        tipoReporte = ""
+
+        if self.ext == ".js":
+            tipoReporte = "ReporteErroresJavascript.html"
+        elif self.ext == ".css":
+            tipoReporte = "ReporteErroresCss.html"
+        elif self.ext == ".html":
+            tipoReporte = "ReporteErroresHtml.html"
+
+        #----Begin creation html----
+        html = open(tipoReporte, 'w')
+        html.write('<html>\n')
+        html.write('    <title>\n')
+        html.write('    </title>\n')
+        html.write('            <body>\n')
+        html.write('                <center>\n')
+        html.write('                    <h1>Tabla de Errores</h1>\n')
+        html.write('                    <h5>Nombre Archivo Origen: ' + nombreArchivoActual + '</h5>\n')
+        html.write('                    <table border=\" 2px \">\n')
+        html.write('                        <tr>\n')
+        html.write('                            <td><h3>No.</h3></td>\n')
+        html.write('                            <td><h3>Caracter</h3></td>\n')
+        html.write('                            <td><h3>Tipo de Error</h2></td>\n')
+        html.write('                            <td><h3>Descripción</h2></td>\n')
+        html.write('                            <td><h3>Fila</h3></td>\n')
+        html.write('                            <td><h3>Columna</h3></td>\n')
+        html.write('                        </tr>\n')
+        html.write('                        <tr>\n')
+        for self.tokenError in self.listE:
+            html.write('                            <td>' + str(indiceLista) + '</td>\n')
+            html.write('                            <td>' + self.tokenError.getCaracterError() + '</td>\n')
+            html.write('                            <td>' + self.tokenError.getTipoErrorEnString() + '</td>\n')
+            html.write('                            <td>' + self.tokenError.getDescripcionError() + '</td>\n')
+            html.write('                            <td>' + str(self.tokenError.getFilaError()) + '</td>\n')
+            html.write('                            <td>' + str(self.tokenError.getColumnaError()) + '</td>\n')
+            html.write('                        </tr>\n')
+            indiceLista += 1
+        html.write('                    </table>\n')
+        html.write('                </center>\n')
+        html.write('            </body>\n')
+        html.write('</html>')
+        html.close()
+        messagebox.showinfo("Reporte de errores", "Reporte de Errores Creado")
+
+    def generarReporteJavascript(self):
+        if os.path.exists("ReporteErroresJavascript.html"):
+            webbrowser.open_new_tab("ReporteErroresJavascript.html")
+        else:
+            messagebox.showerror("Estado Reporte", "No se encontro el reporte\nGenere uno analizando un archivo con errores.")
+
+    def generarReporteCss(self):
+        if os.path.exists("ReporteErroresCss.html"):
+            webbrowser.open_new_tab("ReporteErroresCss.html")
+        else:
+            messagebox.showerror("Estado Reporte", "No se encontro el reporte\nGenere uno analizando un archivo con errores.")
+
+    def generarReporteHtml(self):
+        if os.path.exists("ReporteErroresHtml.html"):
+            webbrowser.open_new_tab("ReporteErroresHtml.html")
+        else:
+            messagebox.showerror("Estado Reporte", "No se encontro el reporte\nGenere uno analizando un archivo con errores.")
+
+
 
 
 if __name__ == "__main__":

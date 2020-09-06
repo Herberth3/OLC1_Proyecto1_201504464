@@ -10,6 +10,7 @@ class Analizador_Lexico_Css:
     textoDocumento = str
     lista_Tokens = list
     lista_Errores = list
+    appendND = str
 
     def analizador_Css(self, textoDocumento):
         self.estado = 0
@@ -25,6 +26,7 @@ class Analizador_Lexico_Css:
         self.columnaComentarioBloque = 0
         self.inicioComentarioBloque = False
         #---Validaciones para COMENTARIO_BLOQUE-----
+        self.appendND = ""  #Recolecta todos los caracteres omitiendo los errores
 
         i = 0
         while i < len(self.textoDocumento):
@@ -55,12 +57,13 @@ class Analizador_Lexico_Css:
                     if self.c == "\n":
                         self.columnaToken = 0
                         self.filaToken += 1
+                    self.appendND += self.c #Recolector de caracteres
                     continue
                 else:
                     if self.c == "$" and i == len(self.textoDocumento) - 1:
                         if len(self.lista_Errores) > 0:
                             messagebox.showerror("Alerta", "Se han encontrado errores léxicos")
-                            self.imprimirLista()
+                            #self.imprimirListaErrores()
                         messagebox.showinfo("Aviso", "Análisis léxico satisfactorio")
                     else:
                         self.addTokenError(self.c, self.filaToken, self.columnaToken)
@@ -353,6 +356,7 @@ class Analizador_Lexico_Css:
     
     def addToken(self, tipo, fila, columna):
         nuevoToken = Token_Css(tipo, self.auxLexema, fila, columna)
+        self.appendND += self.auxLexema # Recolector de caracteres
         self.lista_Tokens.append(nuevoToken)
         self.auxLexema = ""
         self.estado = 0
@@ -367,7 +371,14 @@ class Analizador_Lexico_Css:
         self.auxLexema = ""
         self.estado = 0
     
-    def imprimirLista(self):
+    def imprimirListaErrores(self):
         self.tokenError = Token_Error
+        impresion = ""
         for self.tokenError in self.lista_Errores:
-            print(self.tokenError.getCaracterError() + " Tipo Error: " + self.tokenError.getTipoErrorEnString() + " " + self.tokenError.getDescripcionError() + " Fila: " + str(self.tokenError.getFilaError()) + " Columna: " + str(self.tokenError.getColumnaError()))
+            #print(self.tokenError.getCaracterError() + " Tipo Error: " + self.tokenError.getTipoErrorEnString() + " " + self.tokenError.getDescripcionError() + " Fila: " + str(self.tokenError.getFilaError()) + " Columna: " + str(self.tokenError.getColumnaError()))
+            impresion += "Caracter: " + self.tokenError.getCaracterError() + " <--------> Tipo Error: " + self.tokenError.getTipoErrorEnString() + " <--------> " + self.tokenError.getDescripcionError() + " <-----> Fila: " + str(self.tokenError.getFilaError()) + " <-----> Columna: " + str(self.tokenError.getColumnaError()) + "\n"
+
+        return impresion
+
+    def getRecolectorND(self):
+        return self.appendND
