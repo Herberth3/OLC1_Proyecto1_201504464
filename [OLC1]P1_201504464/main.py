@@ -16,9 +16,15 @@ import webbrowser   #Abrir un archivo en el navegador
 from Analizador_Lexico_Javascript import Analizador_Lexico_Javascript
 from Analizador_Lexico_Css import Analizador_Lexico_Css
 from Analizador_Lexico_Html import Analizador_Lexico_Html
+from Analizador_Lexico_Rmt import Analizador_Lexico_Rmt
+from Analizador_Sintactico_Rmt import Analizador_Sintactico_Rmt
 from Token import Token
 from Token_Css import Token_Css
 from Token_Html import Token_Html
+from Token_Rmt import Token_Rmt
+from Token_Rmt import Tipo
+from Estado_Rmt import Estado_Rmt
+from Estado_Rmt import Estado
 from Token_Error import Token_Error
 
 class GUI:
@@ -53,6 +59,8 @@ class GUI:
         self.itemReporte.add_command(label = "Reporte Css", command = self.generarReporteCss)
         self.itemReporte.add_separator()
         self.itemReporte.add_command(label = "Reporte Html", command = self.generarReporteHtml)
+        self.itemReporte.add_separator()
+        self.itemReporte.add_command(label = "Reporte Rmt", command = self.generarReporteRmt)
         self.itemReporte.add_separator()
         self.itemReporte.add_command(label = "Arbol")
 
@@ -93,6 +101,9 @@ class GUI:
         self.btn3 = Button(self.wind, text = "Analizar .HTML", bg = "black", fg = "white", width = 15, height = 2, command=self.analizar_Archivo)    #btn Analyze
         self.btn3.place(x=750, y = 170)
         self.btn3.config(state = "disabled")
+        self.btn4 = Button(self.wind, text = "Analizar .RMT", bg = "black", fg = "white", width = 15, height = 2, command=self.analizar_Archivo)    #btn Analyze
+        self.btn4.place(x=750, y = 230)
+        self.btn4.config(state = "disabled")
         #self.tab_control.tab("current", text = "lol")
         
         self.mensaje = StringVar()
@@ -107,6 +118,8 @@ class GUI:
             os.remove("ReporteErroresCss.html")
         if os.path.exists("ReporteErroresHtml.html"):
             os.remove("ReporteErroresHtml.html")
+        if os.path.exists("ReporteOperacionesRmt.html"):
+            os.remove("ReporteOperacionesRmt.html")
     
     def nuevo(self):
         global ruta
@@ -119,6 +132,7 @@ class GUI:
         self.btn1.config(state = "disabled")
         self.btn2.config(state = "disabled")
         self.btn3.config(state = "disabled")
+        self.btn4.config(state = "disabled")
         ruta = ""
     
     def abrir(self):
@@ -129,7 +143,8 @@ class GUI:
             initialdir = ".",
             filetypes = (("js files","*.js"),
                 ("html files","*.html"),
-                ("css files","*.css")
+                ("css files","*.css"),
+                ("rmt files","*.rmt")
             ),
             title = "Abrir un fichero."
         )
@@ -151,6 +166,8 @@ class GUI:
                 os.remove("ReporteErroresCss.html")
             if os.path.exists("ReporteErroresHtml.html") and extension == ".html":
                 os.remove("ReporteErroresHtml.html")
+            if os.path.exists("ReporteOperacionesRmt.html") and extension == ".html":
+                os.remove("ReporteOperacionesRmt.html")
 
     def guardar(self):
         global ruta
@@ -172,7 +189,8 @@ class GUI:
 
         tipoArchivo = [("js files","*.js"),
             ("html files","*.html"),
-            ("css files","*.css")]
+            ("css files","*.css"),
+            ("rmt files","*.rmt")]
         fichero = filedialog.asksaveasfile(title = "Guardar fichero", mode = "w",
             filetypes = tipoArchivo, defaultextension = tipoArchivo)
         
@@ -199,14 +217,22 @@ class GUI:
             self.btn1.config(state = "normal")
             self.btn2.config(state = "disabled")
             self.btn3.config(state = "disabled")
+            self.btn4.config(state = "disabled")
         elif extension == ".css":
             self.btn2.config(state = "normal")
             self.btn1.config(state = "disabled")
             self.btn3.config(state = "disabled")
+            self.btn4.config(state = "disabled")
         elif extension == ".html":
             self.btn3.config(state = "normal")
             self.btn1.config(state = "disabled")
             self.btn2.config(state = "disabled")
+            self.btn4.config(state = "disabled")
+        elif extension == ".rmt":
+            self.btn4.config(state = "normal")
+            self.btn1.config(state = "disabled")
+            self.btn2.config(state = "disabled")
+            self.btn3.config(state = "disabled")
 
     def analizar_Archivo(self):
         contenido = self.txtEntrada.get(1.0, "end-1c")
@@ -215,6 +241,8 @@ class GUI:
             extension = os.path.splitext(ruta)[1]
             nuevoContenido = ""
             self.reporteErrorActual = ""
+            self.listaOperacionesAnalizadas = list()    #Lista de las operaciones ya parseadas en archivos .rmt
+            self.estadoOperacion = Estado   #Estado de la operación parseada en archivos .rmt
 
             if extension == ".js":
                 analizador = Analizador_Lexico_Javascript()
@@ -231,20 +259,34 @@ class GUI:
                 listaTokens = analizador.analizador_Css(contenido)
                 nuevoContenido = analizador.getRecolectorND()
                 self.reporteErrorActual = "ReporteErroresCss.html"
-                #self.token = Token_Css
-                #for self.token in listaTokens:
-                    #contenidoConsola += "Lexema: " + self.token.getLexema() + "  <----> Tipo: " + self.token.getTipoEnString() + "  <----> Fila: " + str(self.token.getFila()) + "  <----> Columna: " + str(self.token.getColumna()) + "\n"
-                    ##print("Lexema: " + self.token.getLexema() + "  <----> Tipo: " + self.token.getTipoEnString() + "  <----> Fila: " + str(self.token.getFila()) + "  <----> Columna: " + str(self.token.getColumna()))
                 
             elif extension == ".html":
                 analizador = Analizador_Lexico_Html()
                 listaTokens = analizador.analizador_Html(contenido)
                 nuevoContenido = analizador.getRecolectorND()
                 self.reporteErrorActual = "ReporteErroresHtml.html"
-                #self.token = Token_Html
-                #for self.token in listaTokens:
-                    #contenidoConsola += "Lexema: " + self.token.getLexema() + "  <----> Tipo: " + self.token.getTipoEnString() + "  <----> Fila: " + str(self.token.getFila()) + "  <----> Columna: " + str(self.token.getColumna()) + "\n"
-                    ##print("Lexema: " + self.token.getLexema() + "  <----> Tipo: " + self.token.getTipoEnString() + "  <----> Fila: " + str(self.token.getFila()) + "  <----> Columna: " + str(self.token.getColumna()))
+
+            elif extension == ".rmt":
+                analizador = Analizador_Lexico_Rmt()
+                parser = Analizador_Sintactico_Rmt()
+
+                self.operaciones = contenido.split("\n")
+                for o in self.operaciones:
+                    listaTokens = analizador.analizador_Rmt(o)
+                    nuevoToken = Token_Rmt(Tipo.DESCONOCIDO, "")
+                    listaTokens.append(nuevoToken)
+
+                    parser.parsear(listaTokens)
+                    self.estadoOperacion = parser.getEstadoOperacion()
+                    nuevaOperacion = Estado_Rmt(self.estadoOperacion, o)
+                    self.listaOperacionesAnalizadas.append(nuevaOperacion)
+                self.reporteOperaciones = "ReporteOperacionesRmt.html"
+                self.generarHTML_Operaciones(self.listaOperacionesAnalizadas)
+                webbrowser.open_new_tab(self.reporteOperaciones)
+                #self.estado = Estado_Rmt
+                #for self.estado in self.listaOperacionesAnalizadas:
+                    #contenidoConsola += "Lexema: " + self.token.getLexema() + "  <----> Tipo: " + self.token.getTipoEnString() + "\n"
+                    #print("Operación: " + self.estado.getOperacion() + "  <----> Estado: " + self.estado.getEstadoEnString())
 
             listaErrores = analizador.analizador_Error()
             if len(listaErrores) > 0:
@@ -257,10 +299,8 @@ class GUI:
             self.txtConsola.delete(1.0, END)
             self.txtConsola.insert(1.0, contenidoConsola)
             self.txtConsola.config(state = "disabled")
-            #print(contenidoConsola)
         else:
             messagebox.showinfo("Editor vacio", "Cargue un archivo o ingrese contenido")
-            #print("texto vacio!")
 
     def guardarND(self, listaT, ext, contenido):
         self.listT = listaT
@@ -339,25 +379,68 @@ class GUI:
         html.write('            </body>\n')
         html.write('</html>')
         html.close()
+        #----End creation html----
         messagebox.showinfo("Reporte de errores", "Reporte de Errores Creado")
+
+    def generarHTML_Operaciones(self, listaO):
+        self.listO = listaO
+        self.estado = Estado_Rmt
+        indiceLista = 1
+        nombreArchivoActual = os.path.split(ruta)[1]
+
+        #----Begin creation html----
+        html = open('ReporteOperacionesRmt.html', 'w')
+        html.write('<html>\n')
+        html.write('    <title>\n')
+        html.write('    </title>\n')
+        html.write('            <body>\n')
+        html.write('                <center>\n')
+        html.write('                    <h1>Tabla de validez para operaciones</h1>\n')
+        html.write('                    <h5>Nombre Archivo Origen: ' + nombreArchivoActual + '</h5>\n')
+        html.write('                    <table border=\" 2px \">\n')
+        html.write('                        <tr>\n')
+        html.write('                            <td><h3>No.</h3></td>\n')
+        html.write('                            <td><h3>Operación</h3></td>\n')
+        html.write('                            <td><h3>Análisis</h2></td>\n')
+        html.write('                        </tr>\n')
+        html.write('                        <tr>\n')
+        for self.estado in self.listO:
+            html.write('                            <td>' + str(indiceLista) + '</td>\n')
+            html.write('                            <td>' + self.estado.getOperacion() + '</td>\n')
+            html.write('                            <td>' + self.estado.getEstadoEnString() + '</td>\n')
+            html.write('                        </tr>\n')
+            indiceLista += 1
+        html.write('                    </table>\n')
+        html.write('                </center>\n')
+        html.write('            </body>\n')
+        html.write('</html>')
+        html.close()
+        #----End creation html----
+        messagebox.showinfo("Reporte de operaciones", "Reporte de Operaciones Creado")
 
     def generarReporteJavascript(self):
         if os.path.exists("ReporteErroresJavascript.html"):
             webbrowser.open_new_tab("ReporteErroresJavascript.html")
         else:
-            messagebox.showerror("Estado Reporte", "No se encontro el reporte\nGenere uno analizando un archivo con errores.")
+            messagebox.showerror("Estado Reporte", "No se encontro el reporte\nGenere uno, analizando un archivo con errores.")
 
     def generarReporteCss(self):
         if os.path.exists("ReporteErroresCss.html"):
             webbrowser.open_new_tab("ReporteErroresCss.html")
         else:
-            messagebox.showerror("Estado Reporte", "No se encontro el reporte\nGenere uno analizando un archivo con errores.")
+            messagebox.showerror("Estado Reporte", "No se encontro el reporte\nGenere uno, analizando un archivo con errores.")
 
     def generarReporteHtml(self):
         if os.path.exists("ReporteErroresHtml.html"):
             webbrowser.open_new_tab("ReporteErroresHtml.html")
         else:
-            messagebox.showerror("Estado Reporte", "No se encontro el reporte\nGenere uno analizando un archivo con errores.")
+            messagebox.showerror("Estado Reporte", "No se encontro el reporte\nGenere uno, analizando un archivo con errores.")
+
+    def generarReporteRmt(self):
+        if os.path.exists("ReporteOperacionesRmt.html"):
+            webbrowser.open_new_tab("ReporteOperacionesRmt.html")
+        else:
+            messagebox.showerror("Estado Reporte", "No se encontro el reporte\nGenere uno, analizando un archivo.")
 
 
 
