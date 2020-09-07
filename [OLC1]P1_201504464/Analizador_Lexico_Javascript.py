@@ -11,6 +11,9 @@ class Analizador_Lexico_Javascript:
     lista_Tokens = list
     lista_Errores = list
     appendND = str
+    dotID = str
+    dotD = str
+    dotC = str
 
     def analizador_Javascript(self, textoDocumento):
         self.estado = 0
@@ -28,6 +31,13 @@ class Analizador_Lexico_Javascript:
         self.inicioComentarioBloque = False
         #---Validaciones para COMENTARIO_BLOQUE-----
         self.appendND = ""  #Recolecta todos los caracteres omitiendo los errores
+        self.dotID = ""
+        self.dotD = ""
+        self.dotC = ""
+        self.terminoDotID, self.terminoDotD, self.terminoDotC = False, False, False
+        self.lexemaDot = ""
+        self.estado2Activo, self.estado24Activo = False, False   #Bandera para saber si hubo otro número antes de . o aceptacion
+        self.estado16Activo = False #Bandera para saber si el comentario fue recursivo
 
         i = 0
         while i < len(self.textoDocumento):
@@ -39,9 +49,13 @@ class Analizador_Lexico_Javascript:
                 if self.c.isalpha():
                     self.estado = 1
                     self.auxLexema += self.c
+                    if self.terminoDotID == False:
+                        self.dotID = "digraph G{\nnode[shape = circle]\n\nS0 -> S1[label = \""+ self.c +"\"]\n"
                 elif self.c.isdigit():
                     self.estado = 2
                     self.auxLexema += self.c
+                    if self.terminoDotD == False:
+                        self.dotD = "digraph G{\nnode[shape = circle]\n\nS0 -> S2[label = \""+ self.c +"\"]\n"
                 elif (self.c == '{' or self.c == '}' or self.c == '(' or self.c == ')'
                     or self.c == ';' or self.c == ':' or self.c == '.' or self.c == ','):
                     self.estado = 3
@@ -55,6 +69,8 @@ class Analizador_Lexico_Javascript:
                 elif self.c == "/":
                     self.estado = 6
                     self.auxLexema += self.c
+                    if self.terminoDotC == False:
+                        self.lexemaDot = self.c + " "
                 elif self.c == "&":
                     self.estado = 7
                     self.auxLexema += self.c
@@ -94,7 +110,14 @@ class Analizador_Lexico_Javascript:
                 if self.c.isalpha() or self.c.isdigit() or self.c == "_":
                     self.estado = 1
                     self.auxLexema += self.c
+                    if self.terminoDotID == False:
+                        self.lexemaDot += self.c + " "
                 else:
+                    if self.terminoDotID == False:
+                        self.dotID += "S1 -> S1[label = \""+ self.lexemaDot +"\"]\n"
+                        self.dotID += "S1[shape=doublecircle]\n}"
+                        self.lexemaDot = ""
+
                     if self.auxLexema == "var":
                         self.addToken(Tipo.RESERVADA_VAR, self.filaToken, self.columnaToken - len(self.auxLexema))
                     elif self.auxLexema == "int":
@@ -143,18 +166,33 @@ class Analizador_Lexico_Javascript:
                         self.addToken(Tipo.VARIABLE, self.filaToken, self.columnaToken - len(self.auxLexema))
                     i -= 1
                     self.columnaToken -= 1
+                    self.terminoDotID = True
             #ESTADO S2
             elif self.estado == 2:
                 if self.c.isdigit():
                     self.estado = 2
                     self.auxLexema += self.c
+                    if self.terminoDotD == False:
+                        self.lexemaDot += self.c + " "
+                        self.estado2Activo = True   #Bandera para saber si hubo otro número antes de . o aceptacion
                 elif self.c == ".":
                     self.estado = 13
                     self.auxLexema += self.c
+                    if self.terminoDotD == False:
+                        if self.estado2Activo:
+                            self.dotD += "S2 -> S2[label = \""+ self.lexemaDot +"\"]\n"
+                        self.dotD += "S2 -> S13[label = \""+ self.c +"\"]\n"
+                        self.lexemaDot = ""
                 else:
+                    if self.terminoDotD == False:
+                        if self.estado2Activo:
+                            self.dotD += "S2 -> S2[label = \""+ self.lexemaDot +"\"]\n"
+                        self.dotD += "S2[shape=doublecircle]\n}"
+                        self.lexemaDot = ""
                     self.addToken(Tipo.NUMERO_ENTERO, self.filaToken, self.columnaToken - len(self.auxLexema))
                     i -= 1
                     self.columnaToken -= 1
+                    self.terminoDotD = True
             #ESTADO S3
             elif self.estado == 3:
                 if self.auxLexema == '{':
@@ -196,13 +234,21 @@ class Analizador_Lexico_Javascript:
                 if self.c == "*":
                     self.estado = 16
                     self.auxLexema += self.c
+                    if self.terminoDotC == False:
+                        self.dotC = "digraph G{\nnode[shape = circle]\n\nS0 -> S6[label = \""+ self.lexemaDot +"\"]\n"
+                        self.dotC += "S6 -> S16[label = \""+ self.c +"\"]\n"
+                        self.lexemaDot = ""
                 elif self.c == "/":
                     self.estado = 17
                     self.auxLexema += self.c
+                    if self.terminoDotC == False:
+                        self.lexemaDot = ""
                 else:
                     self.addToken(Tipo.SIGNO_DIVISION, self.filaToken, self.columnaToken - len(self.auxLexema))
                     i -= 1
                     self.columnaToken -= 1
+                    if self.terminoDotC == False:
+                        self.lexemaDot = ""
             #ESTADO S7
             elif self.estado == 7:
                 if self.c == "&":
@@ -269,10 +315,18 @@ class Analizador_Lexico_Javascript:
                 if self.c.isdigit():
                     self.estado = 24
                     self.auxLexema += self.c
+                    if self.terminoDotD == False:
+                        self.dotD += "S13 -> S24[label = \""+ self.c +"\"]\n"
+                        self.lexemaDot = ""
                 else:
+                    if self.terminoDotD == False:
+                        self.dotD += "S13 -> S0[label = \"Error: "+ self.c +"\"]\n"
+                        self.dotD += "S2[shape=doublecircle]\n}"
+                        self.lexemaDot = ""
                     self.addTokenError(self.auxLexema, self.filaToken, self.columnaToken - len(self.auxLexema))
                     i -= 1
                     self.columnaToken -= 1
+                    self.terminoDotD = True
             #ESTADO S14
             elif self.estado == 14:
                 self.addToken(Tipo.CADENA_STRING, self.filaToken, self.columnaToken  - len(self.auxLexema))
@@ -288,15 +342,27 @@ class Analizador_Lexico_Javascript:
                 if self.c == "*":
                     self.estado = 25
                     self.auxLexema += self.c
+                    if self.terminoDotC == False:
+                        if not self.textoDocumento[i + 1] == "/":
+                            self.lexemaDot += self.c + " "
                 else:
                     #---Validaciones para COMENTARIO_BLOQUE-----
                     if self.c == "#" and i == len(self.textoDocumento) - 1:   #validacion si el COMENTARIO_BLOQUE esta en la ultima linea
                         if self.inicioComentarioBloque:
+                            if self.terminoDotC == False:
+                                self.dotC += "S16 -> S0[label = \"Error: "+ self.lexemaDot +"\"]\n"
+                                self.dotC += "S6[shape=doublecircle]\n}"
+                                self.lexemaDot = ""
                             self.addTokenError(self.auxLexema, self.filaComentarioBloque, self.columnaComentarioBloque)
                         else:
+                            if self.terminoDotC == False:
+                                self.dotC += "S16 -> S0[label = \"Error: "+ self.lexemaDot +"\"]\n"
+                                self.dotC += "S6[shape=doublecircle]\n}"
+                                self.lexemaDot = ""
                             self.addTokenError(self.auxLexema, self.filaToken, self.columnaToken - len(self.auxLexema))
                         #i -= 1
                         self.columnaToken -= 1      #Se reduce en 1 columnaToken para no alterar la posición de #
+                        self.terminoDotC = True
                         continue
                     elif self.c == "\n":          #Incrementa la filaToken para no perder la posición durante un comentario bloque
                         if self.inicioComentarioBloque == False:        #Indica cuando comienza el comentario bloque para obtener la posición columna y fila
@@ -308,6 +374,12 @@ class Analizador_Lexico_Javascript:
                     #---Validaciones para COMENTARIO_BLOQUE-----
                     self.estado = 16
                     self.auxLexema += self.c
+                    if self.terminoDotC == False:
+                        if self.c == "\"":
+                            self.lexemaDot += "\\" + self.c + " "
+                        else:
+                            self.lexemaDot += self.c + " "
+                        self.estado16Activo = True
             #ESTADO S17
             elif self.estado == 17:
                 if self.c == "\n":
@@ -378,10 +450,20 @@ class Analizador_Lexico_Javascript:
                 if self.c.isdigit():
                     self.estado = 24
                     self.auxLexema += self.c
+                    if self.terminoDotD == False:
+                        self.lexemaDot += self.c + " "
+                        self.estado24Activo = True
                 else:
+                    if self.terminoDotD == False:
+                        if self.estado24Activo:
+                            self.dotD += "S24 -> S24[label = \""+ self.lexemaDot +"\"]\n"
+                        self.dotD += "S2[shape=doublecircle]\n"
+                        self.dotD += "S24[shape=doublecircle]\n}"
+                        self.lexemaDot = ""
                     self.addToken(Tipo.NUMERO_DECIMAL, self.filaToken, self.columnaToken - len(self.auxLexema))
                     i -= 1
                     self.columnaToken -= 1
+                    self.terminoDotD = True
             #ESTADO S25
             elif self.estado == 25:
                 if self.c == "/":
@@ -390,6 +472,11 @@ class Analizador_Lexico_Javascript:
                     #---Validaciones para COMENTARIO_BLOQUE-----
                     self.estadoComentario = 25
                     #---Validaciones para COMENTARIO_BLOQUE-----
+                    if self.terminoDotC == False:
+                        self.dotC += "S16 -> S16[label = \""+ self.lexemaDot +"\"]\n"
+                        self.dotC += "S16 -> S25[label = \"*\"]\n"
+                        self.dotC += "S25 -> S26[label = \""+ self.c +"\"]\n"
+                        self.lexemaDot = ""
                 elif self.c == "*":
                     #Cofigo prueba----FUNCIONO EXCELENTE
                     self.estado = 16
@@ -404,11 +491,20 @@ class Analizador_Lexico_Javascript:
                     #---Validaciones para COMENTARIO_BLOQUE-----
                     if self.c == "#" and i == len(self.textoDocumento) - 1:   #validacion si el COMENTARIO_BLOQUE esta en la ultima linea
                         if self.inicioComentarioBloque:
+                            if self.terminoDotC == False:
+                                self.dotC += "S25 -> S0[label = \"Error: "+ self.lexemaDot +"\"]\n"
+                                self.dotC += "S6[shape=doublecircle]\n}"
+                                self.lexemaDot = ""
                             self.addTokenError(self.auxLexema, self.filaComentarioBloque, self.columnaComentarioBloque)
                         else:
+                            if self.terminoDotC == False:
+                                self.dotC += "S25 -> S0[label = \"Error: "+ self.lexemaDot +"\"]\n"
+                                self.dotC += "S6[shape=doublecircle]\n}"
+                                self.lexemaDot = ""
                             self.addTokenError(self.auxLexema, self.filaToken, self.columnaToken - len(self.auxLexema))
                         #i -= 1
                         self.columnaToken -= 1      #Se reduce en 1 columnaToken para no alterar la posición de #
+                        self.terminoDotC = True
                         continue
                     elif self.c == "\n":          #Incrementa la filaToken para no perder la posición durante un comentario bloque
                         if self.inicioComentarioBloque == False:        #Indica cuando comienza el comentario bloque para obtener la posición columna y fila
@@ -420,17 +516,27 @@ class Analizador_Lexico_Javascript:
                     #---Validaciones para COMENTARIO_BLOQUE-----
                     self.estado = 16
                     self.auxLexema += self.c
+                    if self.terminoDotC == False:
+                        if self.c == "\"":
+                            self.lexemaDot += "\\" + self.c + " "
+                        else:
+                            self.lexemaDot += self.c + " "
             #ESTADO S26
             elif self.estado == 26:
                 if self.estadoComentario == 17:
                     self.addToken(Tipo.COMENTARIO_LINEA, self.filaToken, self.columnaToken - len(self.auxLexema))
                 else:
+                    if self.terminoDotC == False:
+                        self.dotC += "S6[shape=doublecircle]\n"
+                        self.dotC += "S26[shape=doublecircle]\n}"
+                        self.lexemaDot = ""
                     self.addToken(Tipo.COMENTARIO_BLOQUE, self.filaComentarioBloque, self.columnaComentarioBloque)
                     #---Validaciones para COMENTARIO_BLOQUE-----
                     self.columnaComentarioBloque = 0
                     self.filaComentarioBloque = 0
                     self.inicioComentarioBloque = False
                     #---Validaciones para COMENTARIO_BLOQUE-----
+                    self.terminoDotC = True
                 i -= 1
                 self.columnaToken -= 1
             i += 1
@@ -468,6 +574,16 @@ class Analizador_Lexico_Javascript:
 
     def getRecolectorND(self):
         return self.appendND
+
+    def getDotID(self):
+        return self.dotID
+    
+    def getDotD(self):
+        return self.dotD
+
+    def getDotC(self):
+        return self.dotC
+
         
 
 

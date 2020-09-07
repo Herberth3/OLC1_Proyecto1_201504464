@@ -12,6 +12,7 @@ from tkinter import StringVar
 from tkinter import END
 import os
 import webbrowser   #Abrir un archivo en el navegador
+from PIL import Image
 
 from Analizador_Lexico_Javascript import Analizador_Lexico_Javascript
 from Analizador_Lexico_Css import Analizador_Lexico_Css
@@ -62,7 +63,12 @@ class GUI:
         self.itemReporte.add_separator()
         self.itemReporte.add_command(label = "Reporte Rmt", command = self.generarReporteRmt)
         self.itemReporte.add_separator()
-        self.itemReporte.add_command(label = "Arbol")
+        self.itemReporte.add_command(label = "Arbol Identificador", command = self.generarReporteDotID)
+        self.itemReporte.add_separator()
+        self.itemReporte.add_command(label = "Arbol Dígitos", command = self.generarReporteDotD)
+        self.itemReporte.add_separator()
+        self.itemReporte.add_command(label = "Arbol Comentario", command = self.generarReporteDotC)
+        self.itemReporte.add_separator()
 
         #Append items to the menu
         self.menu.add_cascade(label = "Archivo", menu = self.itemArchivo)
@@ -114,6 +120,18 @@ class GUI:
         #Iniciando la ventana borra los reportes de errores
         if os.path.exists("ReporteErroresJavascript.html"):
             os.remove("ReporteErroresJavascript.html")
+        if os.path.exists("dotID.png"):
+            os.remove("dotID.png")
+        if os.path.exists("dotID.dot"):
+            os.remove("dotID.dot")
+        if os.path.exists("dotD.png"):
+            os.remove("dotD.png")
+        if os.path.exists("dotD.dot"):
+            os.remove("dotD.dot")
+        if os.path.exists("dotC.png"):
+            os.remove("dotC.png")
+        if os.path.exists("dotC.dot"):
+            os.remove("dotC.dot")
         if os.path.exists("ReporteErroresCss.html"):
             os.remove("ReporteErroresCss.html")
         if os.path.exists("ReporteErroresHtml.html"):
@@ -162,11 +180,23 @@ class GUI:
             extension = os.path.splitext(ruta)[1]
             if os.path.exists("ReporteErroresJavascript.html") and extension == ".js":
                 os.remove("ReporteErroresJavascript.html")
+            if os.path.exists("dotID.png") and extension == ".js":
+                os.remove("dotID.png")
+            if os.path.exists("dotID.dot") and extension == ".js":
+                os.remove("dotID.dot")
+            if os.path.exists("dotD.png") and extension == ".js":
+                os.remove("dotD.png")
+            if os.path.exists("dotD.dot") and extension == ".js":
+                os.remove("dotD.dot")
+            if os.path.exists("dotC.png") and extension == ".js":
+                os.remove("dotC.png")
+            if os.path.exists("dotC.dot") and extension == ".js":
+                os.remove("dotC.dot")
             if os.path.exists("ReporteErroresCss.html") and extension == ".css":
                 os.remove("ReporteErroresCss.html")
             if os.path.exists("ReporteErroresHtml.html") and extension == ".html":
                 os.remove("ReporteErroresHtml.html")
-            if os.path.exists("ReporteOperacionesRmt.html") and extension == ".html":
+            if os.path.exists("ReporteOperacionesRmt.html") and extension == ".rmt":
                 os.remove("ReporteOperacionesRmt.html")
 
     def guardar(self):
@@ -245,34 +275,51 @@ class GUI:
             self.estadoOperacion = Estado   #Estado de la operación parseada en archivos .rmt
 
             if extension == ".js":
-                analizador = Analizador_Lexico_Javascript()
-                listaTokens = analizador.analizador_Javascript(contenido)
-                nuevoContenido = analizador.getRecolectorND()
+                self.analizador = Analizador_Lexico_Javascript()
+                listaTokens = self.analizador.analizador_Javascript(contenido)
+                nuevoContenido = self.analizador.getRecolectorND()
                 self.reporteErrorActual = "ReporteErroresJavascript.html"
+                if os.path.exists("dotID.png"):
+                    os.remove("dotID.png")
+                if os.path.exists("dotID.dot"):
+                    os.remove("dotID.dot")
+                if os.path.exists("dotD.png"):
+                    os.remove("dotD.png")
+                if os.path.exists("dotD.dot"):
+                    os.remove("dotD.dot")
+                if os.path.exists("dotC.png"):
+                    os.remove("dotC.png")
+                if os.path.exists("dotC.dot"):
+                    os.remove("dotC.dot")
+
+                self.generarPNG_Dot()
+                self.generarReporteDotID()
+                self.generarReporteDotD()
+                self.generarReporteDotC()
                 #self.token = Token
                 #for self.token in listaTokens:
                     #contenidoConsola += "Lexema: " + self.token.getLexema() + "  <----> Tipo: " + self.token.getTipoEnString() + "  <----> Fila: " + str(self.token.getFila()) + "  <----> Columna: " + str(self.token.getColumna()) + "\n"
                     ##print("Lexema: " + self.token.getLexema() + "  <----> Tipo: " + self.token.getTipoEnString() + "  <----> Fila: " + str(self.token.getFila()) + "  <----> Columna: " + str(self.token.getColumna()))
                 
             elif extension == ".css":
-                analizador = Analizador_Lexico_Css()
-                listaTokens = analizador.analizador_Css(contenido)
-                nuevoContenido = analizador.getRecolectorND()
+                self.analizador = Analizador_Lexico_Css()
+                listaTokens = self.analizador.analizador_Css(contenido)
+                nuevoContenido = self.analizador.getRecolectorND()
                 self.reporteErrorActual = "ReporteErroresCss.html"
                 
             elif extension == ".html":
-                analizador = Analizador_Lexico_Html()
-                listaTokens = analizador.analizador_Html(contenido)
-                nuevoContenido = analizador.getRecolectorND()
+                self.analizador = Analizador_Lexico_Html()
+                listaTokens = self.analizador.analizador_Html(contenido)
+                nuevoContenido = self.analizador.getRecolectorND()
                 self.reporteErrorActual = "ReporteErroresHtml.html"
 
             elif extension == ".rmt":
-                analizador = Analizador_Lexico_Rmt()
+                self.analizador = Analizador_Lexico_Rmt()
                 parser = Analizador_Sintactico_Rmt()
 
                 self.operaciones = contenido.split("\n")
                 for o in self.operaciones:
-                    listaTokens = analizador.analizador_Rmt(o)
+                    listaTokens = self.analizador.analizador_Rmt(o)
                     nuevoToken = Token_Rmt(Tipo.DESCONOCIDO, "")
                     listaTokens.append(nuevoToken)
 
@@ -288,10 +335,10 @@ class GUI:
                     #contenidoConsola += "Lexema: " + self.token.getLexema() + "  <----> Tipo: " + self.token.getTipoEnString() + "\n"
                     #print("Operación: " + self.estado.getOperacion() + "  <----> Estado: " + self.estado.getEstadoEnString())
 
-            listaErrores = analizador.analizador_Error()
+            listaErrores = self.analizador.analizador_Error()
             if len(listaErrores) > 0:
                 self.guardarND(listaTokens, extension, nuevoContenido)
-                contenidoConsola = analizador.imprimirListaErrores()
+                contenidoConsola = self.analizador.imprimirListaErrores()
                 self.generarHTML_Errores(listaErrores, extension)
                 webbrowser.open_new_tab(self.reporteErrorActual) #Abre un archivo en un nuevo tab del navegador
 
@@ -308,28 +355,31 @@ class GUI:
         self.cont = contenido
         nombreArchivo = os.path.split(ruta)[1]
         
-        if self.ext == ".js":
-            self.token = Token
-            self.token = self.listT[0]
-            self.path = str(self.token.getLexema()).replace("//PATHW:", "")
-            self.path += nombreArchivo
-        elif self.ext == ".css":
-            self.token = Token_Css
-            self.token = self.listT[0]
-            self.path = str(self.token.getLexema()).lstrip("/*PATHW:")
-            self.path = self.path.rstrip("*/")
-            self.path += "/" + nombreArchivo
-        elif self.ext == ".html":
-            self.token = Token_Html
-            self.token = self.listT[0]
-            self.path = str(self.token.getLexema()).lstrip("<!-PATHW:")
-            self.path = self.path.rstrip("->")
-            self.path += nombreArchivo
+        try:
+            if self.ext == ".js":
+                self.token = Token
+                self.token = self.listT[0]
+                self.path = str(self.token.getLexema()).replace("//PATHW:", "")
+                self.path += nombreArchivo
+            elif self.ext == ".css":
+                self.token = Token_Css
+                self.token = self.listT[0]
+                self.path = str(self.token.getLexema()).lstrip("/*PATHW:")
+                self.path = self.path.rstrip("*/")
+                self.path += "/" + nombreArchivo
+            elif self.ext == ".html":
+                self.token = Token_Html
+                self.token = self.listT[0]
+                self.path = str(self.token.getLexema()).lstrip("<!-PATHW:")
+                self.path = self.path.rstrip("->")
+                self.path += nombreArchivo
         
-        fichero = open(self.path, "w+", encoding="utf-8")
-        fichero.write(self.cont)
-        fichero.close()
-        self.mensaje.set("Nuevo fichero generado existosamente")
+            fichero = open(self.path, "w+", encoding="utf-8")
+            fichero.write(self.cont)
+            fichero.close()
+            self.mensaje.set("Nuevo fichero generado existosamente")
+        except:
+            messagebox.showerror("Alerta", "No hay ruta para el nuevo documento sin errores")
 
     def generarHTML_Errores(self, listaE, ext):
         self.listE = listaE
@@ -418,6 +468,28 @@ class GUI:
         #----End creation html----
         messagebox.showinfo("Reporte de operaciones", "Reporte de Operaciones Creado")
 
+    def generarPNG_Dot(self):
+        self.dot = self.analizador.getDotID()
+        if not self.dot == "":
+            dot = open("dotID.dot", "w")
+            dot.write(self.dot)
+            dot.close()
+            os.system('dot -Tpng dotID.dot -o dotID.png')
+
+        self.dot = self.analizador.getDotD()
+        if not self.dot == "":
+            dot = open("dotD.dot", "w")
+            dot.write(self.dot)
+            dot.close()
+            os.system('dot -Tpng dotD.dot -o dotD.png')
+
+        self.dot = self.analizador.getDotC()
+        if not self.dot == "":
+            dot = open("dotC.dot", "w")
+            dot.write(self.dot)
+            dot.close()
+            os.system('dot -Tpng dotC.dot -o dotC.png')
+
     def generarReporteJavascript(self):
         if os.path.exists("ReporteErroresJavascript.html"):
             webbrowser.open_new_tab("ReporteErroresJavascript.html")
@@ -441,8 +513,27 @@ class GUI:
             webbrowser.open_new_tab("ReporteOperacionesRmt.html")
         else:
             messagebox.showerror("Estado Reporte", "No se encontro el reporte\nGenere uno, analizando un archivo.")
+    
+    def generarReporteDotID(self):
+        if os.path.exists("dotID.png"):
+            o = Image.open("dotID.png")
+            o.show()
+        else:
+            messagebox.showerror("Estado Reporte", "No se encontro el reporte Árbol Identificador\nGenere uno, analizando un archivo.")
 
+    def generarReporteDotD(self):
+        if os.path.exists("dotD.png"):
+            o = Image.open("dotD.png")
+            o.show()
+        else:
+            messagebox.showerror("Estado Reporte", "No se encontro el reporte Árbol Digitos\nGenere uno, analizando un archivo.")
 
+    def generarReporteDotC(self):
+        if os.path.exists("dotC.png"):
+            o = Image.open("dotC.png")
+            o.show()
+        else:
+            messagebox.showerror("Estado Reporte", "No se encontro el reporte Árbol Comentario\nGenere uno, analizando un archivo.")
 
 
 if __name__ == "__main__":
