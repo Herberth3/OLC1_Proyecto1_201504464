@@ -350,6 +350,11 @@ class GUI:
                 listaTokens = self.analizador.analizador_Css(contenido)
                 nuevoContenido = self.analizador.getRecolectorND()
                 self.reporteErrorActual = "ReporteErroresCss.html"
+
+                bitacora1 = self.analizador.getBitID()
+                bitacora2 = self.analizador.getBitD()
+                bitacora3 = self.analizador.getBitC()
+                contenidoConsola = bitacora1 + bitacora2 + bitacora3
                 
             elif extension == ".html":
                 self.analizador = Analizador_Lexico_Html()
@@ -382,7 +387,7 @@ class GUI:
             listaErrores = self.analizador.analizador_Error()
             if len(listaErrores) > 0:
                 self.guardarND(listaTokens, extension, nuevoContenido)
-                contenidoConsola = self.analizador.imprimirListaErrores()
+                contenidoConsola += self.analizador.imprimirListaErrores()
                 self.generarHTML_Errores(listaErrores, extension)
                 webbrowser.open_new_tab(self.reporteErrorActual) #Abre un archivo en un nuevo tab del navegador
 

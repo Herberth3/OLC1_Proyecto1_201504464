@@ -36,6 +36,7 @@ class Analizador_Lexico_Javascript:
         self.dotC = ""
         self.terminoDotID, self.terminoDotD, self.terminoDotC = False, False, False
         self.lexemaDot = ""
+        self.estado1Activo = False  #Bandera para saber si el identificador tiene mas de 1 caracter
         self.estado2Activo, self.estado24Activo = False, False   #Bandera para saber si hubo otro número antes de . o aceptacion
         self.estado16Activo = False #Bandera para saber si el comentario fue recursivo
 
@@ -112,9 +113,11 @@ class Analizador_Lexico_Javascript:
                     self.auxLexema += self.c
                     if self.terminoDotID == False:
                         self.lexemaDot += self.c + " "
+                        self.estado1Activo = True
                 else:
                     if self.terminoDotID == False:
-                        self.dotID += "S1 -> S1[label = \""+ self.lexemaDot +"\"]\n"
+                        if self.estado1Activo:
+                            self.dotID += "S1 -> S1[label = \""+ self.lexemaDot +"\"]\n"
                         self.dotID += "S1[shape=doublecircle]\n}"
                         self.lexemaDot = ""
 
@@ -473,7 +476,8 @@ class Analizador_Lexico_Javascript:
                     self.estadoComentario = 25
                     #---Validaciones para COMENTARIO_BLOQUE-----
                     if self.terminoDotC == False:
-                        self.dotC += "S16 -> S16[label = \""+ self.lexemaDot +"\"]\n"
+                        if self.estado16Activo:
+                            self.dotC += "S16 -> S16[label = \""+ self.lexemaDot +"\"]\n"
                         self.dotC += "S16 -> S25[label = \"*\"]\n"
                         self.dotC += "S25 -> S26[label = \""+ self.c +"\"]\n"
                         self.lexemaDot = ""
@@ -521,6 +525,7 @@ class Analizador_Lexico_Javascript:
                             self.lexemaDot += "\\" + self.c + " "
                         else:
                             self.lexemaDot += self.c + " "
+                        self.estado16Activo = True
             #ESTADO S26
             elif self.estado == 26:
                 if self.estadoComentario == 17:
