@@ -19,6 +19,13 @@ from Analizador_Lexico_Css import Analizador_Lexico_Css
 from Analizador_Lexico_Html import Analizador_Lexico_Html
 from Analizador_Lexico_Rmt import Analizador_Lexico_Rmt
 from Analizador_Sintactico_Rmt import Analizador_Sintactico_Rmt
+
+from Analizador_Color_Javascript import Analizador_Color_Javascript #Prueba color
+from Analizador_Color_Css import Analizador_Color_Css #Prueba color
+from Analizador_Color_Html import Analizador_Color_Html #Prueba color
+from Analizador_Color_Rmt import Analizador_Color_Rmt #Prueba color
+from Token_Color import Token_Color #Prueba color
+
 from Token import Token
 from Token_Css import Token_Css
 from Token_Html import Token_Html
@@ -85,6 +92,8 @@ class GUI:
         self.vScroll.pack(side = "right", fill = "y")
         self.hScroll.pack(side = "bottom", fill = "x")
         self.txtEntrada = Text(self.tab1, width = 80, height = 22, wrap = "none", yscrollcommand = self.vScroll.set, xscrollcommand = self.hScroll.set)
+        #self.txtEntrada.bind('<Button-1>', self.mostrarCoordenadas )
+        self.txtEntrada.bind('<KeyRelease>', self.mostrarCoordenadas )
         
         #Packege scrolledtext into tab1
         self.txtEntrada.pack()
@@ -116,6 +125,12 @@ class GUI:
         self.mensaje.set("Bienvenido a tu editor")
         self.monitor = Label(self.wind, textvar = self.mensaje, justify = "right")
         self.monitor.place(x = 0, y = 658)
+        
+        self.coordenadas = StringVar()
+        self.coordenadas.set("Lineas=1 Columnas=1")
+        self.monitorCoo = Label(self.wind, textvar = self.coordenadas, justify = "right")
+        self.monitorCoo.place(x = 300, y = 658)
+        
 
         #Iniciando la ventana borra los reportes de errores
         if os.path.exists("ReporteErroresJavascript.html"):
@@ -138,6 +153,13 @@ class GUI:
             os.remove("ReporteErroresHtml.html")
         if os.path.exists("ReporteOperacionesRmt.html"):
             os.remove("ReporteOperacionesRmt.html")
+
+    def mostrarCoordenadas(self, event):
+        #self.coordenadas['text'] = f'x = {event.x} y = {event.y}'
+        #self.coordenadas.set("x=" + str(event.x) + " y=" + str(event.y))
+        self.l1 = self.txtEntrada.index('current').split('.')[0]
+        self.l2 = self.txtEntrada.index('current').split('.')[1]
+        self.coordenadas.set("Lineas=" + self.l1 + " Columnas=" + self.l2)
     
     def nuevo(self):
         global ruta
@@ -170,8 +192,30 @@ class GUI:
         if ruta != "":
             fichero = open(ruta, "r", encoding="utf-8")
             contenido = fichero.read()
+            #CONTENIDO ORIGINAL ANTES DE COLOR------------------
             self.txtEntrada.delete(1.0, "end")
-            self.txtEntrada.insert(1.0, contenido)
+            #self.txtEntrada.insert(1.0, contenido)
+            #CONTENIDO ORIGINAL ANTES DE COLOR------------------
+            
+
+            #CONTENIDO DURANTE COLOR------------------
+            extension = os.path.splitext(ruta)[1]
+            if extension == ".js":
+                analizadorColor = Analizador_Color_Javascript()
+                listaT = analizadorColor.analizador_J(contenido)
+            elif extension == ".css":
+                analizadorColor = Analizador_Color_Css()
+                listaT = analizadorColor.analizador_C(contenido)
+            elif extension == ".html":
+                analizadorColor = Analizador_Color_Html()
+                listaT = analizadorColor.analizador_H(contenido)
+            elif extension == ".rmt":
+                analizadorColor = Analizador_Color_Rmt()
+                listaT = analizadorColor.analizador_R(contenido)
+            
+            self.setColorText(listaT)
+            #CONTENIDO DURANTE COLOR------------------
+
             fichero.close()
             self.txtConsola.config(state = "normal")
             self.txtConsola.delete(1.0, END)
@@ -534,6 +578,46 @@ class GUI:
             o.show()
         else:
             messagebox.showerror("Estado Reporte", "No se encontro el reporte Árbol Comentario\nGenere uno, analizando un archivo.")
+
+    #CONTENIDO DURANTE COLOR------------------
+    def setColorText(self, listaT):
+        t = Token_Color
+        for t in listaT:
+            if t.getTipoEnString() == "Reservada":
+                reservada = t.getLexema()
+                self.txtEntrada.insert(END, reservada , 'reservada')
+            elif t.getTipoEnString() == "Variable":
+                variable = t.getLexema()
+                self.txtEntrada.insert(END, variable , 'variable')
+            elif t.getTipoEnString() == "Numero":
+                numero = t.getLexema()
+                self.txtEntrada.insert(END, numero , 'numero')
+            elif t.getTipoEnString() == "Comentario":
+                comentario = t.getLexema()
+                self.txtEntrada.insert(END, comentario , 'comentario')
+            elif t.getTipoEnString() == "Cadena":
+                cadena = t.getLexema()
+                self.txtEntrada.insert(END, cadena , 'cadena')
+            elif t.getTipoEnString() == "Boolean":
+                boolean = t.getLexema()
+                self.txtEntrada.insert(END, boolean , 'boolean')
+            elif t.getTipoEnString() == "Operador":
+                operador = t.getLexema()
+                self.txtEntrada.insert(END, operador , 'operador')
+            else:
+                cualquiera = t.getLexema()
+                self.txtEntrada.insert(END, cualquiera)
+
+        self.txtEntrada.tag_config('reservada', foreground = "red")
+        self.txtEntrada.tag_config('variable', foreground = "green")
+        self.txtEntrada.tag_config('numero', foreground = "blue")
+        self.txtEntrada.tag_config('comentario', foreground = "gray")
+        self.txtEntrada.tag_config('cadena', foreground = "yellow")
+        self.txtEntrada.tag_config('boolean', foreground = "blue")
+        self.txtEntrada.tag_config('operador', foreground = "orange")
+                
+
+    #CONTENIDO DURANTE COLOR------------------
 
 
 if __name__ == "__main__":
