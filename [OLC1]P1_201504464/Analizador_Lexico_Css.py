@@ -11,9 +11,7 @@ class Analizador_Lexico_Css:
     lista_Tokens = list
     lista_Errores = list
     appendND = str
-    bitID = str #Bitacora ID
-    bitD = str #Bitacora Digito
-    bitC =str #Bitacora Comentario
+    bitacora = str #Bitacora 
 
     def analizador_Css(self, textoDocumento):
         self.estado = 0
@@ -30,14 +28,13 @@ class Analizador_Lexico_Css:
         self.inicioComentarioBloque = False
         #---Validaciones para COMENTARIO_BLOQUE-----
         self.appendND = ""  #Recolecta todos los caracteres omitiendo los errores
-        self.bitID = ""
-        self.bitD = ""
-        self.bitC = ""
-        self.terminoBitID, self.terminoBitD, self.terminoBitC = False, False, False
+        self.bitacora = ""
+        #self.terminoBitID, self.terminoBitD, self.terminoBitC = False, False, False
         self.lexemaBit = ""
         self.estado1Activo = False  #Bandera para saber si el identificador tiene mas de 1 caracter
         self.estado2Activo, self.estado9Activo = False, False   #Bandera para saber si hubo otro número antes de . o aceptacion
         self.estado8Activo = False  #Bandera para saber si el comentario fue recursivo
+        self.estado4Activo = False #Bandera para saber si la cadena fue recursiva
 
 
         i = 0
@@ -50,26 +47,26 @@ class Analizador_Lexico_Css:
                 if self.c.isalpha():
                     self.estado = 1
                     self.auxLexema += self.c
-                    if self.terminoBitID == False:
-                        self.bitID = "BITACORA IDENTIFICADOR\nS0 -> $1 ["+self.c+"]\n"
+                    self.bitacora += "BITACORA IDENTIFICADOR\nS0 -> $1 ["+self.c+"]\n"
                 elif self.c.isdigit():
                     self.estado = 2
                     self.auxLexema += self.c
-                    if self.terminoBitD == False:
-                        self.bitD = "BITACORA DIGITO\nS0 -> $2 ["+self.c+"]\n"
+                    self.bitacora += "BITACORA DIGITO\nS0 -> $2 ["+self.c+"]\n"
                 elif (self.c == '{' or self.c == '}' or self.c == '(' or self.c == ')' or self.c == ';' or self.c == ':'
                     or self.c == '.' or self.c == ',' or self.c == '-' or self.c == '*' or self.c == '%' or self.c == '#'):
                     self.estado = 3
                     self.auxLexema += self.c
+                    self.bitacora += "BITACORA CARACTER\nS0 -> $3 ["+self.c+"]\n"
                 elif self.c == "\"":
                     self.estado = 4
                     self.auxLexema += self.c
+                    self.bitacora += "BITACORA CADENA\nS0 -> S4 ["+self.c+"]\n"
                 elif self.c == "/":
                     self.estado = 5
                     self.auxLexema += self.c
-                    if self.terminoBitC == False:
-                        self.bitC = "BITACORA COMENTARIO\nS0 -> S5 ["+self.c+"]\n"
+                    self.bitacora += "BITACORA COMENTARIO\nS0 -> S5 ["+self.c+"]\n"
                 elif self.c == " " or self.c == "\t" or self.c == "\r" or self.c == "\n":
+                    self.bitacora += "IGNORAR: ["+self.c+"]\n"
                     i += 1
                     self.estado = 0
                     if self.c == "\n":
@@ -82,23 +79,27 @@ class Analizador_Lexico_Css:
                         if len(self.lista_Errores) > 0:
                             messagebox.showerror("Alerta", "Se han encontrado errores léxicos")
                             #self.imprimirListaErrores()
+                        self.bitacora += "...ANALISIS FINALIZADO...\n\n"
                         messagebox.showinfo("Aviso", "Análisis léxico satisfactorio")
                     else:
+                        self.bitacora += "[ERROR: "+self.c+"]\n"
+                        self.bitacora += "\n"
+                        self.lexemaBit = ""
                         self.addTokenError(self.c, self.filaToken, self.columnaToken)
             #ESTADO S1
             elif self.estado == 1:
                 if self.c.isalpha() or self.c.isdigit() or self.c == "-":
                     self.estado = 1
                     self.auxLexema += self.c
-                    if self.terminoBitID == False:
-                        self.lexemaBit += self.c + " "
-                        self.estado1Activo = True
+                    self.lexemaBit += self.c + " "
+                    self.estado1Activo = True
                 else:
-                    if self.terminoBitID == False:
-                        if self.estado1Activo:
-                            self.bitID += "$1 -> $1 [ "+self.lexemaBit+"]\n"
-                        self.bitID += "\n"
-                        self.lexemaBit = ""
+                    if self.estado1Activo:
+                        self.bitacora += "$1 -> $1 [ "+self.lexemaBit+"]\n"
+                    self.bitacora += "\n"
+                    self.bitacora += "$1 -> S0 ["+self.c+"]\n\n"
+                    self.lexemaBit = ""
+                    self.estado1Activo = False
 
                     if self.auxLexema == "color":
                         self.addToken(Tipo.PROPIEDAD_COLOR, self.filaToken, self.columnaToken - len(self.auxLexema))
@@ -228,35 +229,37 @@ class Analizador_Lexico_Css:
                         self.addToken(Tipo.IDENTIFICADOR, self.filaToken, self.columnaToken - len(self.auxLexema))
                     i -= 1
                     self.columnaToken -= 1
-                    self.terminoBitID = True
             #ESTADO S2
             elif self.estado == 2:
                 if self.c.isdigit():
                     self.estado = 2
                     self.auxLexema += self.c
-                    if self.terminoBitD == False:
-                        self.lexemaBit += self.c + " "
-                        self.estado2Activo = True   #Bandera para saber si hubo otro número antes de . o aceptacion
+                    self.lexemaBit += self.c + " "
+                    self.estado2Activo = True   #Bandera para saber si hubo otro número antes de . o aceptacion
                 elif self.c == ".":
                     self.estado = 6
                     self.auxLexema += self.c
-                    if self.terminoBitD == False:
-                        if self.estado2Activo:
-                            self.bitD += "$2 -> $2 ["+self.lexemaBit+"]\n"
-                        self.bitD += "$2 -> S6 ["+self.c+"]\n"
-                        self.lexemaBit = ""
+                    if self.estado2Activo:
+                        self.bitacora += "$2 -> $2 ["+self.lexemaBit+"]\n"
+                    self.bitacora += "$2 -> S6 ["+self.c+"]\n"
+                    self.lexemaBit = ""
+                    self.estado2Activo = False
                 else:
-                    if self.terminoBitD == False:
-                        if self.estado2Activo:
-                            self.bitD += "$2 -> $2 ["+self.lexemaBit+"]\n"
-                        self.bitD += "\n"
-                        self.lexemaBit = ""
+                    if self.estado2Activo:
+                        self.bitacora += "$2 -> $2 ["+self.lexemaBit+"]\n"
+                    self.bitacora += "\n"
+                    self.bitacora += "$2 -> S0 ["+self.c+"]\n\n"
+                    self.lexemaBit = ""
+                    self.estado2Activo = False
                     self.addToken(Tipo.NUMERO_ENTERO, self.filaToken, self.columnaToken - len(self.auxLexema))
                     i -= 1
                     self.columnaToken -= 1
-                    self.terminoBitD = True
             #ESTADO S3
             elif self.estado == 3:
+                self.bitacora += "\n"
+                self.bitacora += "$3 -> S0 ["+self.c+"]\n\n"
+                self.lexemaBit = ""
+
                 if self.auxLexema == '{':
                     self.addToken(Tipo.LLAVE_IZQ, self.filaToken, self.columnaToken - len(self.auxLexema))
                 elif self.auxLexema == '}':
@@ -291,41 +294,45 @@ class Analizador_Lexico_Css:
                 else:
                     self.estado = 4
                     self.auxLexema += self.c
+                    self.lexemaBit += self.c + " "
+                    self.estado4Activo = True
             #ESTADO S5
             elif self.estado == 5:
                 if self.c == "*":
                     self.estado = 8
                     self.auxLexema += self.c
-                    if self.terminoBitC == False:
-                        self.bitC += "S5 -> S8 ["+self.c+"]\n"
+                    self.bitacora += "S5 -> S8 ["+self.c+"]\n"
                 else:
-                    if self.terminoBitC == False:
-                        self.bitC += "S5 -> S0 [Error: "+self.c+"]\n"
-                        self.bitC += "\n"
-                        self.lexemaBit = ""
+                    self.bitacora += "[ERROR: "+self.auxLexema+"]\n"
+                    self.bitacora += "S5 -> S0 ["+self.c+"]\n"
+                    self.bitacora += "\n"
+                    self.lexemaBit = ""
                     self.addTokenError(self.auxLexema, self.filaToken, self.columnaToken - len(self.auxLexema))
                     i -= 1
                     self.columnaToken -= 1
-                    self.terminoBitC = True
             #ESTADO S6
             elif self.estado == 6:
                 if self.c.isdigit():
                     self.estado = 9
                     self.auxLexema += self.c
-                    if self.terminoBitD == False:
-                        self.bitD += "S6 -> $9 ["+self.c+"]\n"
-                        self.lexemaBit = ""
+                    self.bitacora += "S6 -> $9 ["+self.c+"]\n"
+                    self.lexemaBit = ""
                 else:
-                    if self.terminoBitD == False:
-                        self.bitD += "S6 -> S0 [Error: "+self.c+"]\n"
-                        self.bitD += "\n"
-                        self.lexemaBit = ""
+                    self.bitacora += "[ERROR: "+self.auxLexema+"]\n"
+                    self.bitacora += "S6 -> S0 ["+self.c+"]\n"
+                    self.bitacora += "\n"
+                    self.lexemaBit = ""
                     self.addTokenError(self.auxLexema, self.filaToken, self.columnaToken - len(self.auxLexema))
                     i -= 1
                     self.columnaToken -= 1
-                    self.terminoBitD = True
             #ESTADO S7
             elif self.estado == 7:
+                if self.estado4Activo:
+                    self.bitacora += "S4 -> S4 [ "+self.lexemaBit+"]\n"
+                self.bitacora += "S4 -> $7 [ \" ]\n\n"
+                self.bitacora += "$7 -> S0 ["+self.c+"]\n\n"
+                self.lexemaBit = ""
+                self.estado4Activo = False
                 self.addToken(Tipo.CADENA_STRING, self.filaToken, self.columnaToken  - len(self.auxLexema))
                 i -= 1
                 self.columnaToken -= 1
@@ -334,27 +341,27 @@ class Analizador_Lexico_Css:
                 if self.c == "*":
                     self.estado = 10
                     self.auxLexema += self.c
-                    if self.terminoBitC == False:
-                        if not self.textoDocumento[i + 1] == "/":
-                            self.lexemaBit += self.c
+                    if not self.textoDocumento[i + 1] == "/":
+                        self.lexemaBit += self.c
                 else:
                     #---Validaciones para COMENTARIO_BLOQUE-----
                     if self.c == "$" and i == len(self.textoDocumento) - 1:   #validacion si el COMENTARIO_BLOQUE esta en la ultima linea
                         if self.inicioComentarioBloque:
-                            if self.terminoBitC == False:
-                                self.bitC += "S8 -> S0 [Error: "+self.lexemaBit+"]\n"
-                                self.bitC += "\n"
-                                self.lexemaBit = ""
+                            self.bitacora += "[ERROR: "+self.auxLexema+"]\n"
+                            self.bitacora += "S8 -> S0 ["+self.lexemaBit+"]\n"
+                            self.bitacora += "\n"
+                            self.lexemaBit = ""
+                            self.estado8Activo = False
                             self.addTokenError(self.auxLexema, self.filaComentarioBloque, self.columnaComentarioBloque)
                         else:
-                            if self.terminoBitC == False:
-                                self.bitC += "S8 -> S0 [Error: "+self.lexemaBit+"]\n"
-                                self.bitC += "\n"
-                                self.lexemaBit = ""
+                            self.bitacora += "[ERROR: "+self.auxLexema+"]\n"
+                            self.bitacora += "S8 -> S0 [Error: "+self.lexemaBit+"]\n"
+                            self.bitacora += "\n"
+                            self.lexemaBit = ""
+                            self.estado8Activo = False
                             self.addTokenError(self.auxLexema, self.filaToken, self.columnaToken - len(self.auxLexema))
                         #i -= 1
                         self.columnaToken -= 1      #Se reduce en 1 columnaToken para no alterar la posición de #
-                        self.terminoBitC = True
                         continue
                     elif self.c == "\n":          #Incrementa la filaToken para no perder la posición durante un comentario bloque
                         if self.inicioComentarioBloque == False:        #Indica cuando comienza el comentario bloque para obtener la posición columna y fila
@@ -366,38 +373,36 @@ class Analizador_Lexico_Css:
                     #---Validaciones para COMENTARIO_BLOQUE-----
                     self.estado = 8
                     self.auxLexema += self.c
-                    if self.terminoBitC == False:
-                        self.lexemaBit += self.c + " "
-                        self.estado8Activo = True
+                    self.lexemaBit += self.c + " "
+                    self.estado8Activo = True
             #ESTADO S9
             elif self.estado == 9:
                 if self.c.isdigit():
                     self.estado = 9
                     self.auxLexema += self.c
-                    if self.terminoBitD == False:
-                        self.lexemaBit += self.c + " "
-                        self.estado9Activo = True
+                    self.lexemaBit += self.c + " "
+                    self.estado9Activo = True
                 else:
-                    if self.terminoBitD == False:
-                        if self.estado9Activo:
-                            self.bitD += "$9 -> $9 [ "+self.lexemaBit+"]\n"
-                        self.bitD += "\n"
-                        self.lexemaBit = ""
+                    if self.estado9Activo:
+                        self.bitacora += "$9 -> $9 [ "+self.lexemaBit+"]\n"
+                    self.bitacora += "\n"
+                    self.bitacora += "$9 -> S0 ["+self.c+"]\n\n"
+                    self.lexemaBit = ""
+                    self.estado9Activo = False
                     self.addToken(Tipo.NUMERO_DECIMAL, self.filaToken, self.columnaToken - len(self.auxLexema))
                     i -= 1
                     self.columnaToken -= 1
-                    self.terminoBitD = True
             #ESTADO S10
             elif self.estado == 10:
                 if self.c == "/":
                     self.estado = 11
                     self.auxLexema += self.c
-                    if self.terminoBitC == False:
-                        if self.estado8Activo:
-                            self.bitC += "S8 -> S8 [ "+self.lexemaBit+"]\n"
-                        self.bitC += "S8 -> S10 [ * ]\n"
-                        self.bitC += "S10 -> $11 [ "+self.c+"]\n"
-                        self.lexemaBit = ""
+                    if self.estado8Activo:
+                        self.bitacora += "S8 -> S8 [ "+self.lexemaBit+"]\n"
+                    self.bitacora += "S8 -> S10 [ * ]\n"
+                    self.bitacora += "S10 -> $11 [ "+self.c+"]\n"
+                    self.lexemaBit = ""
+                    self.estado8Activo = False
                 elif self.c == "*":
                     self.estado = 8
                     i -= 1
@@ -406,19 +411,20 @@ class Analizador_Lexico_Css:
                     #---Validaciones para COMENTARIO_BLOQUE-----
                     if self.c == "$" and i == len(self.textoDocumento) - 1:   #validacion si el COMENTARIO_BLOQUE esta en la ultima linea
                         if self.inicioComentarioBloque:
-                            if self.terminoBitC == False:
-                                self.bitC += "S10 -> S0 [Error: "+self.lexemaBit+"]\n"
-                                self.bitC += "\n"
-                                self.lexemaBit = ""
+                            self.bitacora += "[ERROR: "+self.auxLexema+"]\n"
+                            self.bitacora += "S10 -> S0 ["+self.lexemaBit+"]\n"
+                            self.bitacora += "\n"
+                            self.lexemaBit = ""
+                            self.estado8Activo = False
                             self.addTokenError(self.auxLexema, self.filaComentarioBloque, self.columnaComentarioBloque)
                         else:
-                            if self.terminoBitC == False:
-                                self.bitC += "S10 -> S0 [Error: "+self.lexemaBit+"]\n"
-                                self.bitC += "\n"
-                                self.lexemaBit = ""
+                            self.bitacora += "[ERROR: "+self.auxLexema+"]\n"
+                            self.bitacora += "S10 -> S0 ["+self.lexemaBit+"]\n"
+                            self.bitacora += "\n"
+                            self.lexemaBit = ""
+                            self.estado8Activo = False
                             self.addTokenError(self.auxLexema, self.filaToken, self.columnaToken - len(self.auxLexema))
                         self.columnaToken -= 1      #Se reduce en 1 columnaToken para no alterar la posición de #
-                        self.terminoBitC = True
                         continue
                     elif self.c == "\n":          #Incrementa la filaToken para no perder la posición durante un comentario bloque
                         if self.inicioComentarioBloque == False:        #Indica cuando comienza el comentario bloque para obtener la posición columna y fila
@@ -430,14 +436,13 @@ class Analizador_Lexico_Css:
                     #---Validaciones para COMENTARIO_BLOQUE-----
                     self.estado = 8
                     self.auxLexema += self.c
-                    if self.terminoBitC == False:
-                        self.lexemaBit += self.c + " "
-                        self.estado8Activo = True
+                    self.lexemaBit += self.c + " "
+                    self.estado8Activo = True
             #ESTADO S11
             elif self.estado == 11:
-                if self.terminoBitC == False:
-                    self.bitC += "\n"
-                    self.lexemaBit = ""
+                self.bitacora += "\n"
+                self.bitacora += "$11 -> S0 ["+self.c+"]\n\n"
+                self.lexemaBit = ""
                 if self.inicioComentarioBloque:
                     self.addToken(Tipo.COMENTARIO, self.filaComentarioBloque, self.columnaComentarioBloque)
                     #---Validaciones para COMENTARIO_BLOQUE-----
@@ -447,7 +452,6 @@ class Analizador_Lexico_Css:
                     #---Validaciones para COMENTARIO_BLOQUE-----
                 else:
                     self.addToken(Tipo.COMENTARIO, self.filaToken, self.columnaToken - len(self.auxLexema))
-                self.terminoBitC = True
                 i -= 1
                 self.columnaToken -= 1
             i += 1
@@ -486,11 +490,5 @@ class Analizador_Lexico_Css:
     def getRecolectorND(self):
         return self.appendND
 
-    def getBitID(self):
-        return self.bitID
-
-    def getBitD(self):
-        return self.bitD
-
-    def getBitC(self):
-        return self.bitC
+    def getBitacora(self):
+        return self.bitacora

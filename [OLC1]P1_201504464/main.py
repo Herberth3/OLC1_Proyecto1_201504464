@@ -351,10 +351,7 @@ class GUI:
                 nuevoContenido = self.analizador.getRecolectorND()
                 self.reporteErrorActual = "ReporteErroresCss.html"
 
-                bitacora1 = self.analizador.getBitID()
-                bitacora2 = self.analizador.getBitD()
-                bitacora3 = self.analizador.getBitC()
-                contenidoConsola = bitacora1 + bitacora2 + bitacora3
+                contenidoConsola = self.analizador.getBitacora()
                 
             elif extension == ".html":
                 self.analizador = Analizador_Lexico_Html()
