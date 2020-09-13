@@ -278,7 +278,6 @@ class GUI:
             self.mensaje.set("Fichero guardado correctamente")
         else:
             self.mensaje.set("Guardado cancelado")
-            ruta = ""
 
     def configuracionArchivoActual(self, ruta):
         extension = os.path.splitext(ruta)[1]
